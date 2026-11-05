@@ -11,11 +11,31 @@ datasource db {
 }
 
 model User {
-  id        Int      @id @default(autoincrement())
+  id        Int             @id @default(autoincrement())
   name      String
-  email     String   @unique
+  email     String          @unique
   password  String
-  role      String   @default("STUDENT")
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  role      String          @default("STUDENT")
+  createdAt DateTime        @default(now())
+  updatedAt DateTime        @updatedAt
+  profile   StudentProfile?
+}
+
+model StudentProfile {
+  id                    Int       @id @default(autoincrement())
+  userId                Int       @unique
+  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  dateOfBirth           DateTime?
+  gender                String?
+  phoneNumber           String?
+  state                 String?   @default("Rajasthan")
+  district              String?
+  city                  String?
+  currentEducationLevel String?
+  instituteName         String?
+  courseOrStream        String?
+  passingYear           Int?
+  percentageOrCgpa      Float?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
 }
