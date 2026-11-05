@@ -4,6 +4,7 @@ require("dotenv").config();
 const express = require("express");
 const authRoutes = require("./routes/auth.routes");
 const studentRoutes = require("./routes/student.routes");
+const collegeRoutes = require("./routes/college.routes");
 
 const app = express();
 
@@ -23,6 +24,9 @@ app.use("/api/auth", authRoutes);
 
 // Register student profile routes under /api/students prefix
 app.use("/api/students", studentRoutes);
+
+// Register college & branch routes under /api/colleges prefix
+app.use("/api/colleges", collegeRoutes);
 
 // Define server port from environment variables or default to 5001
 const PORT = process.env.PORT || 5001;
