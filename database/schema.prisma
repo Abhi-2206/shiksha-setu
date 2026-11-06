@@ -61,6 +61,9 @@ model College {
 
   // 1-to-Many Relationship: One College offers Many Branches
   branches     Branch[]
+
+  // 1-to-Many Relationship: One College has Many Cutoff records
+  cutoffs      AdmissionCutoff[]
 }
 
 model Branch {
@@ -74,6 +77,32 @@ model Branch {
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
+  // 1-to-Many Relationship: One Branch has Many Cutoff records
+  cutoffs       AdmissionCutoff[]
+
   // Enforces that a college cannot offer duplicate branches with the same code
   @@unique([collegeId, code])
+}
+
+// -------------------------------------------------------------
+// CP11: Admission & Cutoff Model
+// Department of Technical Education, Government of Rajasthan
+// -------------------------------------------------------------
+
+model AdmissionCutoff {
+  id          Int      @id @default(autoincrement())
+  collegeId   Int                                        // Foreign key → College
+  college     College  @relation(fields: [collegeId], references: [id], onDelete: Cascade)
+  branchId    Int                                        // Foreign key → Branch
+  branch      Branch   @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  year        Int                                        // Admission year e.g. 2024
+  category    String                                     // GENERAL, OBC, SC, ST, EWS, MBC, SBC
+  cutoffMarks Float?                                     // Cutoff percentage/marks (optional)
+  cutoffRank  Int?                                       // Cutoff rank (optional)
+  round       Int      @default(1)                       // Counseling round number (1, 2, 3...)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // One college+branch cannot have two cutoffs for the same year, category and round
+  @@unique([collegeId, branchId, year, category, round])
 }
