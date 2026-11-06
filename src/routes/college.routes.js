@@ -1,5 +1,7 @@
 const express = require("express");
 const prisma = require("../lib/prisma");
+const authenticateToken = require("../middleware/auth.middleware");
+const requireAdmin = require("../middleware/admin.middleware");
 
 const router = express.Router();
 
@@ -98,8 +100,9 @@ router.get("/:id", async (req, res) => {
 // -------------------------------------------------------------
 // 3. CREATE COLLEGE
 // Endpoint: POST /api/colleges
+// Protected: ADMIN only
 // -------------------------------------------------------------
-router.post("/", async (req, res) => {
+router.post("/", authenticateToken, requireAdmin, async (req, res) => {
   try {
     const {
       name,
@@ -165,8 +168,9 @@ router.post("/", async (req, res) => {
 // -------------------------------------------------------------
 // 4. UPDATE COLLEGE
 // Endpoint: PUT /api/colleges/:id
+// Protected: ADMIN only
 // -------------------------------------------------------------
-router.put("/:id", async (req, res) => {
+router.put("/:id", authenticateToken, requireAdmin, async (req, res) => {
   try {
     const collegeId = parseInt(req.params.id, 10);
 
@@ -250,8 +254,9 @@ router.put("/:id", async (req, res) => {
 // -------------------------------------------------------------
 // 5. DELETE COLLEGE (Cascade deletes branches automatically)
 // Endpoint: DELETE /api/colleges/:id
+// Protected: ADMIN only
 // -------------------------------------------------------------
-router.delete("/:id", async (req, res) => {
+router.delete("/:id", authenticateToken, requireAdmin, async (req, res) => {
   try {
     const collegeId = parseInt(req.params.id, 10);
 
@@ -294,8 +299,9 @@ router.delete("/:id", async (req, res) => {
 // -------------------------------------------------------------
 // 6. ADD BRANCH TO COLLEGE (College-Branch Relationship)
 // Endpoint: POST /api/colleges/:id/branches
+// Protected: ADMIN only
 // -------------------------------------------------------------
-router.post("/:id/branches", async (req, res) => {
+router.post("/:id/branches", authenticateToken, requireAdmin, async (req, res) => {
   try {
     const collegeId = parseInt(req.params.id, 10);
 
@@ -447,8 +453,9 @@ router.get("/:id/branches", async (req, res) => {
 // -------------------------------------------------------------
 // 8. DELETE A BRANCH FROM A COLLEGE
 // Endpoint: DELETE /api/colleges/:collegeId/branches/:branchId
+// Protected: ADMIN only
 // -------------------------------------------------------------
-router.delete("/:collegeId/branches/:branchId", async (req, res) => {
+router.delete("/:collegeId/branches/:branchId", authenticateToken, requireAdmin, async (req, res) => {
   try {
     const collegeId = parseInt(req.params.collegeId, 10);
     const branchId = parseInt(req.params.branchId, 10);
