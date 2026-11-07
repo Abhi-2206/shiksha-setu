@@ -1,0 +1,124 @@
+/* Navbar Component Styling */
+
+.navbar {
+  background-color: #FFFFFF;
+  border-bottom: 2px solid #D4AF37; /* Royal Gold bottom border */
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  width: 100%;
+}
+
+.navbar-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 12px 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+}
+
+/* Brand / Logo Section */
+.navbar-brand {
+  display: flex;
+  flex-direction: column;
+  text-decoration: none;
+}
+
+.brand-title {
+  font-size: 20px;
+  font-weight: 700;
+  color: #252525;
+  letter-spacing: 0.5px;
+}
+
+.brand-title span {
+  color: #D4AF37; /* Royal gold accent on Setu */
+}
+
+.brand-subtitle {
+  font-size: 11px;
+  color: #666666;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+/* Navigation Links */
+.navbar-links {
+  display: flex;
+  align-items: center;
+  list-style: none;
+  gap: 8px;
+}
+
+.nav-item a {
+  display: inline-block;
+  padding: 8px 14px;
+  font-size: 14px;
+  font-weight: 500;
+  color: #252525;
+  border-radius: 4px;
+  transition: color 0.2s, background-color 0.2s;
+}
+
+/* Hover effect */
+.nav-item a:hover {
+  color: #D4AF37;
+  background-color: #F7F7F7;
+}
+
+/* Active link indicator */
+.nav-item a.active {
+  color: #252525;
+  font-weight: 600;
+  background-color: rgba(212, 175, 55, 0.15); /* Light gold background */
+  border-bottom: 2px solid #D4AF37;
+}
+
+/* Right side action button (Login) */
+.navbar-actions {
+  display: flex;
+  align-items: center;
+}
+
+.login-btn {
+  display: inline-block;
+  padding: 8px 20px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #252525;
+  background-color: #D4AF37; /* Royal Gold */
+  border: 1px solid #D4AF37;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.2s, color 0.2s;
+}
+
+.login-btn:hover {
+  background-color: #b8972c;
+  color: #FFFFFF;
+}
+
+/* Mobile responsive menu */
+@media (max-width: 900px) {
+  .navbar-container {
+    flex-wrap: wrap;
+    padding: 12px 16px;
+  }
+
+  .navbar-links {
+    order: 3;
+    width: 100%;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 4px;
+    padding-top: 10px;
+    border-top: 1px solid #E2E2E2;
+  }
+
+  .nav-item a {
+    padding: 10px 12px;
+  }
+}
