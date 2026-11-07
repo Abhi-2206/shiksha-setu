@@ -1,6 +1,7 @@
 import React from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import Navbar from './components/Navbar';
+import HomePage from './pages/HomePage';
 import './App.css';
 
 function App() {
@@ -13,15 +14,7 @@ function App() {
         {/* Page Content based on current route */}
         <main className="main-content">
           <Routes>
-            <Route 
-              path="/" 
-              element={
-                <div className="page-placeholder">
-                  <h1>Home Page</h1>
-                  <p>Welcome to ShikshaSetu. Milestone 1 (Navbar) is active. Home sections will be added in upcoming milestones.</p>
-                </div>
-              } 
-            />
+            <Route path="/" element={<HomePage />} />
             <Route 
               path="/students" 
               element={
