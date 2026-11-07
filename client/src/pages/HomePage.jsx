@@ -272,7 +272,7 @@ function HomePage() {
         </div>
       </section>
 
-      {/* Notice Details Modal (Simple Beginner-Friendly State) */}
+      {/* Notice Details Modal */}
       {selectedNotice && (
         <div 
           style={{
@@ -339,9 +339,57 @@ function HomePage() {
         </div>
       )}
 
-      {/* Subsequent milestones will add:
-          - Footer (Milestone 5)
-      */}
+      {/* 5. Footer Section (Milestone 5) */}
+      <footer className="home-footer">
+        <div className="footer-container">
+          
+          {/* Column A: Brand & Mission Information */}
+          <div className="footer-col footer-brand-col">
+            <div className="footer-brand-title">
+              Shiksha<span>Setu</span>
+            </div>
+            <div className="footer-dept-name">
+              Department of Technical Education, Government of Rajasthan
+            </div>
+            <p className="footer-brand-desc">
+              An AI-powered student assistance platform designed to make technical 
+              education information more accessible and convenient for students.
+            </p>
+          </div>
+
+          {/* Column B: Quick Links */}
+          <div className="footer-col">
+            <h4 className="footer-heading">Quick Links</h4>
+            <ul className="footer-links">
+              <li><Link to="/">Home</Link></li>
+              <li><Link to="/students">Student Management</Link></li>
+              <li><Link to="/colleges">Colleges & Branches</Link></li>
+              <li><Link to="/chatbot">AI Chatbot</Link></li>
+              <li><Link to="/cutoffs">Admission Cutoff</Link></li>
+            </ul>
+          </div>
+
+          {/* Column C: Useful Information */}
+          <div className="footer-col">
+            <h4 className="footer-heading">Useful Information</h4>
+            <ul className="footer-links">
+              <li><Link to="/colleges">Technical Education Overview</Link></li>
+              <li><Link to="/cutoffs">Polytechnic Admissions Portal</Link></li>
+              <li><Link to="/chatbot">24/7 AI Assistance Helpdesk</Link></li>
+              <li><Link to="/students">Student Academic Profiles</Link></li>
+            </ul>
+          </div>
+
+        </div>
+
+        {/* Footer Bottom Bar: Copyright & Student Project Disclaimer */}
+        <div className="footer-bottom">
+          <p>© 2026 ShikshaSetu. All rights reserved.</p>
+          <p className="footer-disclaimer">
+            A student project developed for the Department of Technical Education use case.
+          </p>
+        </div>
+      </footer>
 
     </div>
   );
