@@ -244,11 +244,229 @@
   color: #b8972c;
 }
 
-/* Responsive adjustments */
+/* =========================================================
+   Milestone 4: About ShikshaSetu Section
+   ========================================================= */
+
+.about-section {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.about-card {
+  background-color: #FFFFFF;
+  border: 1px solid #E2E2E2;
+  border-radius: 6px;
+  padding: 36px 32px;
+}
+
+.about-layout {
+  display: grid;
+  grid-template-columns: 1.1fr 1fr;
+  gap: 40px;
+  align-items: start;
+}
+
+.about-text {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.about-text p {
+  font-size: 15px;
+  line-height: 1.7;
+  color: #4a4a4a;
+}
+
+.about-concluding-box {
+  background-color: #F7F7F7;
+  border-left: 4px solid #D4AF37;
+  padding: 14px 18px;
+  border-radius: 4px;
+  margin-top: 6px;
+}
+
+.about-concluding-box p {
+  font-size: 14px;
+  font-weight: 600;
+  color: #252525;
+  margin: 0;
+}
+
+/* Objectives column */
+.about-objectives {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.objectives-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: #252525;
+  margin-bottom: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.objective-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  background-color: #FAFAFA;
+  border: 1px solid #EDEDED;
+  border-radius: 6px;
+  padding: 12px 14px;
+  transition: border-color 0.2s;
+}
+
+.objective-item:hover {
+  border-color: #D4AF37;
+}
+
+.objective-number {
+  background-color: rgba(212, 175, 55, 0.15);
+  color: #8c7322;
+  font-weight: 700;
+  font-size: 13px;
+  min-width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.objective-text {
+  font-size: 14px;
+  color: #333333;
+  line-height: 1.45;
+}
+
+/* =========================================================
+   Milestone 4: Important Notices Section
+   ========================================================= */
+
+.notices-section {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.notices-disclaimer {
+  background-color: #FFFDF5;
+  border: 1px solid #F0E6C2;
+  border-left: 4px solid #D4AF37;
+  padding: 10px 16px;
+  border-radius: 4px;
+  font-size: 13px;
+  color: #7A6517;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.notices-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px;
+}
+
+.notice-card {
+  background-color: #FFFFFF;
+  border: 1px solid #E2E2E2;
+  border-radius: 6px;
+  padding: 24px 20px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 16px;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.notice-card:hover {
+  border-color: #D4AF37;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.04);
+}
+
+.notice-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.notice-tag {
+  background-color: rgba(212, 175, 55, 0.12);
+  color: #8c7322;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 3px 8px;
+  border-radius: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+.notice-date {
+  font-size: 12px;
+  color: #888888;
+  font-weight: 500;
+}
+
+.notice-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: #252525;
+  margin: 0;
+  line-height: 1.4;
+}
+
+.notice-desc {
+  font-size: 13px;
+  line-height: 1.55;
+  color: #666666;
+  margin: 0;
+}
+
+.notice-action-btn {
+  background: none;
+  border: 1px solid #D4AF37;
+  color: #252525;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 8px 14px;
+  border-radius: 4px;
+  cursor: pointer;
+  align-self: flex-start;
+  transition: background-color 0.2s, color 0.2s;
+}
+
+.notice-action-btn:hover {
+  background-color: #D4AF37;
+  color: #FFFFFF;
+}
+
+/* =========================================================
+   Responsive Adjustments
+   ========================================================= */
+
 @media (max-width: 992px) {
   /* 2 cards per row on medium screens */
   .quick-cards-grid {
     grid-template-columns: repeat(2, 1fr);
+  }
+
+  .about-layout {
+    grid-template-columns: 1fr;
+    gap: 30px;
+  }
+
+  .notices-grid {
+    grid-template-columns: 1fr;
+    gap: 16px;
   }
 }
 
@@ -278,6 +496,10 @@
   .btn-primary,
   .btn-secondary {
     width: 100%;
+  }
+
+  .about-card {
+    padding: 24px 20px;
   }
 }
 
