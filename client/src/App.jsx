@@ -2,6 +2,7 @@ import React from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import Navbar from './components/Navbar';
 import HomePage from './pages/HomePage';
+import StudentPage from './pages/StudentPage';
 import './App.css';
 
 function App() {
@@ -15,15 +16,7 @@ function App() {
         <main className="main-content">
           <Routes>
             <Route path="/" element={<HomePage />} />
-            <Route 
-              path="/students" 
-              element={
-                <div className="page-placeholder">
-                  <h1>Student Management Page</h1>
-                  <p>Student records, search, and profile management will be built in Milestone 6.</p>
-                </div>
-              } 
-            />
+            <Route path="/students" element={<StudentPage />} />
             <Route 
               path="/colleges" 
               element={
