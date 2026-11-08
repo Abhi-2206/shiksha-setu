@@ -423,10 +423,18 @@ router.post("/", authenticateToken, requireAdmin, async (req, res) => {
     } = req.body;
 
     // Validate required user fields
-    if (!name || !email) {
+    if (!name || !name.trim() || !email || !email.trim() || !password || !password.trim()) {
       return res.status(400).json({
         success: false,
-        message: "Name and email are required to create a student",
+        message: "Name, email, and password are required to create a student",
+      });
+    }
+
+    // Validate password length
+    if (password.trim().length < 6) {
+      return res.status(400).json({
+        success: false,
+        message: "Password must be at least 6 characters long",
       });
     }
 
@@ -442,9 +450,8 @@ router.post("/", authenticateToken, requireAdmin, async (req, res) => {
       });
     }
 
-    // Hash password (use provided password or default 'Student@123')
-    const plainPassword = password && password.trim() ? password.trim() : "Student@123";
-    const hashedPassword = await bcrypt.hash(plainPassword, 10);
+    // Hash password using bcrypt (salt rounds = 10)
+    const hashedPassword = await bcrypt.hash(password.trim(), 10);
 
     // Validate dateOfBirth format if provided
     let parsedDob = null;
