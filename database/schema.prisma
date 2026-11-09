@@ -10,12 +10,179 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+// ============================================================================
+// Enums
+// ============================================================================
+
+enum Role {
+  STUDENT
+  ADMIN
+}
+
+enum Category {
+  GEN
+  OBC
+  SC
+  ST
+  EWS
+  MBC
+  TFWS
+  PWD
+}
+
+enum SenderType {
+  STUDENT
+  ASSISTANT
+}
+
+// ============================================================================
+// Core User Model (Authentication & Roles)
+// ============================================================================
+
 model User {
-  id        Int      @id @default(autoincrement())
-  name      String
-  email     String   @unique
-  password  String
-  role      String   @default("STUDENT")
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id           Int             @id @default(autoincrement())
+  name         String
+  email        String          @unique
+  password     String
+  role         Role            @default(STUDENT)
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @updatedAt
+
+  // Relationships
+  profile      StudentProfile?
+  chatSessions ChatSession[]
+
+  @@index([email])
+  @@index([role])
+}
+
+// ============================================================================
+// Student Profile (Contact, Academics & Admission Preferences)
+// ============================================================================
+
+model StudentProfile {
+  id                   Int       @id @default(autoincrement())
+  userId               Int       @unique
+  user                 User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Personal & Contact Information
+  fullName             String?
+  phoneNumber          String?
+  alternatePhone       String?
+  dateOfBirth          DateTime?
+  gender               String?
+  address              String?
+  district             String?
+  state                String?   @default("Rajasthan")
+  pincode              String?
+  isRajasthanDomicile  Boolean   @default(true)
+
+  // Academic Details
+  qualifyingExam       String?   // e.g., "Class 10", "Class 12", "Diploma"
+  tenthPercentage      Float?
+  twelfthPercentage    Float?
+  diplomaPercentage    Float?
+  examRank             Int?      // Merit rank for counseling / cutoffs
+  examRollNumber       String?
+
+  // Category & Reservation Preferences
+  category             Category  @default(GEN)
+  subCategory          String?   // e.g., "Ex-Serviceman", "PH", etc.
+
+  // Course & College Preferences
+  preferredCourse      String?
+  preferredLocation    String?   // Preferred district or city (e.g., "Jaipur")
+  preferredCollegeType String?   // "Government", "Private", "Aided"
+
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+
+  @@index([userId])
+  @@index([examRank])
+  @@index([category])
+  @@index([preferredLocation])
+}
+
+// ============================================================================
+// Chatbot Conversations & Messages
+// ============================================================================
+
+model ChatSession {
+  id        String        @id @default(uuid())
+  userId    Int
+  user      User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title     String        @default("New Conversation")
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+
+  messages  ChatMessage[]
+
+  @@index([userId])
+  @@index([createdAt])
+}
+
+model ChatMessage {
+  id         Int         @id @default(autoincrement())
+  sessionId  String
+  session    ChatSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  senderType SenderType  @default(STUDENT)
+  content    String      @db.Text
+  sources    Json?       // Structured citation metadata: [{ document_name, page_number, source_path }]
+  createdAt  DateTime    @default(now())
+
+  @@index([sessionId])
+  @@index([createdAt])
+}
+
+// ============================================================================
+// Colleges & Cutoffs (Department of Technical Education Rajasthan)
+// ============================================================================
+
+model College {
+  id              Int             @id @default(autoincrement())
+  code            String          @unique // e.g., "GPC_JAIPUR" (matches AI service identifier)
+  name            String
+  location        String          // City / District, e.g., "Jaipur"
+  district        String?
+  state           String          @default("Rajasthan")
+  type            String          @default("Government") // Government, Private, Aided
+  establishedYear Int?
+  website         String?
+  contactEmail    String?
+  contactPhone    String?
+  address         String?
+  isActive        Boolean         @default(true)
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+
+  cutoffs         CollegeCutoff[]
+
+  @@index([code])
+  @@index([location])
+  @@index([district])
+  @@index([type])
+  @@index([isActive])
+}
+
+model CollegeCutoff {
+  id            Int      @id @default(autoincrement())
+  collegeId     Int
+  college       College  @relation(fields: [collegeId], references: [id], onDelete: Cascade)
+  courseName    String   // e.g., "Civil Engineering"
+  category      Category // GEN, OBC, SC, ST, EWS, MBC, TFWS, PWD
+  admissionYear Int      // e.g., 2024
+  openingRank   Int
+  closingRank   Int
+  round         Int      @default(1)
+  source        String   // e.g., "DTE Rajasthan Official Cutoff 2024"
+  sourceYear    Int      // e.g., 2024
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@unique([collegeId, courseName, category, admissionYear, round])
+  @@index([collegeId])
+  @@index([courseName])
+  @@index([category])
+  @@index([admissionYear])
+  @@index([closingRank])
 }
