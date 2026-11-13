@@ -3,6 +3,7 @@ require("dotenv").config();
 
 const express = require("express");
 const authRoutes = require("./routes/auth.routes");
+const studentRoutes = require("./routes/student.routes");
 
 const app = express();
 
@@ -19,6 +20,9 @@ app.get("/api/health", (req, res) => {
 
 // Register authentication routes under /api/auth prefix
 app.use("/api/auth", authRoutes);
+
+// Register student profile routes under /api/students prefix
+app.use("/api/students", studentRoutes);
 
 // Define server port from environment variables or default to 5001
 const PORT = process.env.PORT || 5001;
