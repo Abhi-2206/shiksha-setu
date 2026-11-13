@@ -39,3 +39,41 @@ model StudentProfile {
   createdAt             DateTime  @default(now())
   updatedAt             DateTime  @updatedAt
 }
+
+// -------------------------------------------------------------
+// CP06: College & Branch Models
+// Department of Technical Education, Government of Rajasthan
+// -------------------------------------------------------------
+
+model College {
+  id           Int      @id @default(autoincrement())
+  name         String   // College Name e.g. "Government Polytechnic College, Jaipur"
+  code         String   @unique // Official DTE College Code e.g. "GPC-JPR"
+  type         String   @default("GOVERNMENT") // GOVERNMENT, PRIVATE, AIDED
+  district     String   // Rajasthan District e.g. "Jaipur", "Jodhpur", "Kota"
+  city         String   // City name
+  address      String?  // Full street address
+  website      String?  // Official college website
+  contactEmail String?  // Contact email for admissions/helpdesk
+  contactPhone String?  // Contact telephone / mobile
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  // 1-to-Many Relationship: One College offers Many Branches
+  branches     Branch[]
+}
+
+model Branch {
+  id            Int      @id @default(autoincrement())
+  name          String   // Branch Name e.g. "Computer Science & Engineering"
+  code          String   // Branch Code e.g. "CSE", "ME", "CE", "EE"
+  durationYears Int      @default(3) // Duration in years (3 for Polytechnic Diploma)
+  seats         Int      @default(60) // Sanctioned seat intake capacity
+  collegeId     Int      // Foreign key referencing College.id
+  college       College  @relation(fields: [collegeId], references: [id], onDelete: Cascade)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  // Enforces that a college cannot offer duplicate branches with the same code
+  @@unique([collegeId, code])
+}
