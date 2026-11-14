@@ -1,0 +1,438 @@
+/* =========================================================
+   Student Management Page Styles (ShikshaSetu)
+   Theme: Royal Gold (#D4AF37), White (#FFFFFF),
+          Charcoal (#252525), Light Gray (#F7F7F7)
+   ========================================================= */
+
+.student-page {
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+}
+
+/* ---------------------------------------------------------
+   1. Page Header Section
+   --------------------------------------------------------- */
+.student-header {
+  background-color: #FFFFFF;
+  border: 1px solid #E2E2E2;
+  border-left: 5px solid #D4AF37;
+  border-radius: 6px;
+  padding: 24px 28px;
+}
+
+.student-header-badge {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #8c7322;
+  background-color: rgba(212, 175, 55, 0.12);
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: 4px;
+  margin-bottom: 8px;
+}
+
+.student-header-title {
+  font-size: 28px;
+  font-weight: 700;
+  color: #252525;
+  margin: 0 0 6px 0;
+}
+
+.student-header-subtitle {
+  font-size: 14px;
+  color: #666666;
+  margin: 0;
+  line-height: 1.5;
+}
+
+/* ---------------------------------------------------------
+   2. Statistics Cards Grid
+   --------------------------------------------------------- */
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px;
+}
+
+.stat-card {
+  background-color: #FFFFFF;
+  border: 1px solid #E2E2E2;
+  border-radius: 6px;
+  padding: 20px 22px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  transition: transform 0.2s, border-color 0.2s;
+}
+
+.stat-card:hover {
+  border-color: #D4AF37;
+  transform: translateY(-2px);
+}
+
+.stat-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.stat-label {
+  font-size: 13px;
+  color: #666666;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+.stat-value {
+  font-size: 26px;
+  font-weight: 700;
+  color: #252525;
+}
+
+.stat-icon-box {
+  width: 44px;
+  height: 44px;
+  border-radius: 6px;
+  background-color: rgba(212, 175, 55, 0.12);
+  color: #D4AF37;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* ---------------------------------------------------------
+   3. Actions & Filter Toolbar
+   --------------------------------------------------------- */
+.toolbar-card {
+  background-color: #FFFFFF;
+  border: 1px solid #E2E2E2;
+  border-radius: 6px;
+  padding: 18px 20px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.toolbar-filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+}
+
+/* Search input container */
+.search-box {
+  position: relative;
+  min-width: 280px;
+  flex: 1;
+}
+
+.search-input {
+  width: 100%;
+  padding: 10px 14px 10px 38px;
+  font-size: 14px;
+  border: 1px solid #D1D1D1;
+  border-radius: 4px;
+  outline: none;
+  color: #252525;
+  background-color: #FAFAFA;
+  transition: border-color 0.2s, background-color 0.2s;
+}
+
+.search-input:focus {
+  border-color: #D4AF37;
+  background-color: #FFFFFF;
+}
+
+.search-icon {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #888888;
+  display: flex;
+  align-items: center;
+  pointer-events: none;
+}
+
+/* Select dropdowns */
+.filter-select {
+  padding: 10px 14px;
+  font-size: 13px;
+  border: 1px solid #D1D1D1;
+  border-radius: 4px;
+  outline: none;
+  background-color: #FAFAFA;
+  color: #252525;
+  cursor: pointer;
+  min-width: 150px;
+}
+
+.filter-select:focus {
+  border-color: #D4AF37;
+  background-color: #FFFFFF;
+}
+
+/* Add Student Primary Action Button */
+.btn-add-student {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background-color: #D4AF37; /* Royal Gold */
+  color: #252525;
+  font-weight: 600;
+  font-size: 14px;
+  padding: 10px 20px;
+  border-radius: 4px;
+  border: 1px solid #D4AF37;
+  cursor: pointer;
+  transition: background-color 0.2s, color 0.2s;
+  white-space: nowrap;
+}
+
+.btn-add-student:hover {
+  background-color: #b8972c;
+  color: #FFFFFF;
+}
+
+/* ---------------------------------------------------------
+   4. Student Directory Table
+   --------------------------------------------------------- */
+.table-card {
+  background-color: #FFFFFF;
+  border: 1px solid #E2E2E2;
+  border-radius: 6px;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
+}
+
+.table-responsive {
+  width: 100%;
+  overflow-x: auto;
+}
+
+.student-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+  font-size: 13.5px;
+}
+
+.student-table thead {
+  background-color: #F7F7F7;
+  border-bottom: 2px solid #E2E2E2;
+}
+
+.student-table th {
+  padding: 14px 16px;
+  font-weight: 700;
+  color: #252525;
+  text-transform: uppercase;
+  font-size: 12px;
+  letter-spacing: 0.4px;
+  white-space: nowrap;
+}
+
+.student-table tbody tr {
+  border-bottom: 1px solid #EEEEEE;
+  transition: background-color 0.15s;
+}
+
+.student-table tbody tr:hover {
+  background-color: #FFFDF5; /* Soft gold tint on hover */
+}
+
+.student-table td {
+  padding: 14px 16px;
+  color: #444444;
+  vertical-align: middle;
+}
+
+.student-id-cell {
+  font-weight: 700;
+  color: #252525;
+  font-family: ui-monospace, Consolas, monospace;
+}
+
+.student-name-cell {
+  font-weight: 600;
+  color: #252525;
+}
+
+/* District badge */
+.badge-district {
+  display: inline-block;
+  padding: 3px 8px;
+  background-color: #F2F2F2;
+  color: #333333;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+/* Action buttons */
+.table-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.action-btn {
+  padding: 6px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.2s, color 0.2s, border-color 0.2s;
+  background-color: transparent;
+}
+
+.btn-view {
+  border: 1px solid #C4C4C4;
+  color: #252525;
+}
+
+.btn-view:hover {
+  border-color: #D4AF37;
+  color: #D4AF37;
+}
+
+.btn-edit {
+  border: 1px solid #D4AF37;
+  color: #8c7322;
+  background-color: rgba(212, 175, 55, 0.08);
+}
+
+.btn-edit:hover {
+  background-color: #D4AF37;
+  color: #FFFFFF;
+}
+
+.btn-delete {
+  border: 1px solid #E57373;
+  color: #C62828;
+}
+
+.btn-delete:hover {
+  background-color: #C62828;
+  color: #FFFFFF;
+}
+
+/* ---------------------------------------------------------
+   5. State Designs: Loading, Error, Empty
+   --------------------------------------------------------- */
+.state-container {
+  padding: 50px 20px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+}
+
+.state-icon {
+  font-size: 38px;
+  margin-bottom: 4px;
+}
+
+.state-title {
+  font-size: 17px;
+  font-weight: 700;
+  color: #252525;
+  margin: 0;
+}
+
+.state-message {
+  font-size: 13.5px;
+  color: #666666;
+  max-width: 440px;
+  margin: 0;
+  line-height: 1.5;
+}
+
+/* Loading Spinner */
+.spinner {
+  width: 36px;
+  height: 36px;
+  border: 3px solid rgba(212, 175, 55, 0.2);
+  border-top-color: #D4AF37;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  margin-bottom: 6px;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Error State */
+.state-error {
+  border-left: 4px solid #C62828;
+  background-color: #FFF8F8;
+}
+
+.btn-retry {
+  margin-top: 8px;
+  padding: 7px 16px;
+  font-size: 13px;
+  font-weight: 600;
+  border-radius: 4px;
+  border: 1px solid #252525;
+  background-color: #252525;
+  color: #FFFFFF;
+  cursor: pointer;
+}
+
+/* ---------------------------------------------------------
+   6. Responsive Adjustments
+   --------------------------------------------------------- */
+@media (max-width: 992px) {
+  .stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 768px) {
+  .student-header {
+    padding: 20px;
+  }
+
+  .student-header-title {
+    font-size: 22px;
+  }
+
+  .stats-grid {
+    grid-template-columns: 1fr;
+    gap: 14px;
+  }
+
+  .toolbar-card {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .toolbar-filters {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .search-box,
+  .filter-select,
+  .btn-add-student {
+    width: 100%;
+  }
+
+  .btn-add-student {
+    justify-content: center;
+  }
+}

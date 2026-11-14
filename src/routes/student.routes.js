@@ -1,6 +1,8 @@
 const express = require("express");
+const bcrypt = require("bcrypt");
 const prisma = require("../lib/prisma");
 const authenticateToken = require("../middleware/auth.middleware");
+const requireAdmin = require("../middleware/admin.middleware");
 
 const router = express.Router();
 
@@ -325,6 +327,430 @@ router.delete("/profile", authenticateToken, async (req, res) => {
     return res.status(500).json({
       success: false,
       message: "Internal server error deleting student profile",
+    });
+  }
+});
+
+// =============================================================
+// STUDENT DIRECTORY MANAGEMENT ENDPOINTS (Admin Only)
+// =============================================================
+
+// -------------------------------------------------------------
+// 5. GET ALL STUDENTS (Directory listing with search/filter)
+// Endpoint: GET /api/students
+// Protected: authenticateToken, requireAdmin
+// -------------------------------------------------------------
+router.get("/", authenticateToken, requireAdmin, async (req, res) => {
+  try {
+    const { search, district, courseOrStream } = req.query;
+
+    // Build filter conditions dynamically
+    const userFilter = {
+      role: "STUDENT",
+    };
+
+    if (search) {
+      const searchTrimmed = search.trim();
+      const parsedId = parseInt(searchTrimmed, 10);
+      const orConditions = [
+        { name: { contains: searchTrimmed, mode: "insensitive" } },
+        { email: { contains: searchTrimmed, mode: "insensitive" } },
+      ];
+      // If the search query is numeric, also search by student user ID
+      if (!isNaN(parsedId)) {
+        orConditions.push({ id: parsedId });
+      }
+      userFilter.OR = orConditions;
+    }
+
+    if (district || courseOrStream) {
+      userFilter.profile = {
+        ...(district ? { district: { equals: district.trim(), mode: "insensitive" } } : {}),
+        ...(courseOrStream ? { courseOrStream: { contains: courseOrStream.trim(), mode: "insensitive" } } : {}),
+      };
+    }
+
+    const students = await prisma.user.findMany({
+      where: userFilter,
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        role: true,
+        createdAt: true,
+        updatedAt: true,
+        profile: true,
+      },
+      orderBy: { id: "asc" },
+    });
+
+    return res.status(200).json({
+      success: true,
+      count: students.length,
+      students: students,
+    });
+  } catch (error) {
+    console.error("Get all students error:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error fetching students",
+    });
+  }
+});
+
+// -------------------------------------------------------------
+// 6. CREATE NEW STUDENT (User + StudentProfile in Transaction)
+// Endpoint: POST /api/students
+// Protected: authenticateToken, requireAdmin
+// -------------------------------------------------------------
+router.post("/", authenticateToken, requireAdmin, async (req, res) => {
+  try {
+    const {
+      name,
+      email,
+      password,
+      dateOfBirth,
+      gender,
+      phoneNumber,
+      state,
+      district,
+      city,
+      currentEducationLevel,
+      instituteName,
+      courseOrStream,
+      passingYear,
+      percentageOrCgpa,
+    } = req.body;
+
+    // Validate required user fields
+    if (!name || !email) {
+      return res.status(400).json({
+        success: false,
+        message: "Name and email are required to create a student",
+      });
+    }
+
+    // Check if email already exists
+    const existingUser = await prisma.user.findUnique({
+      where: { email: email.trim().toLowerCase() },
+    });
+
+    if (existingUser) {
+      return res.status(400).json({
+        success: false,
+        message: "A user with this email already exists",
+      });
+    }
+
+    // Hash password (use provided password or default 'Student@123')
+    const plainPassword = password && password.trim() ? password.trim() : "Student@123";
+    const hashedPassword = await bcrypt.hash(plainPassword, 10);
+
+    // Validate dateOfBirth format if provided
+    let parsedDob = null;
+    if (dateOfBirth) {
+      parsedDob = new Date(dateOfBirth);
+      if (isNaN(parsedDob.getTime())) {
+        return res.status(400).json({
+          success: false,
+          message: "Invalid date of birth format. Use YYYY-MM-DD",
+        });
+      }
+    }
+
+    // Validate passingYear if provided
+    let parsedPassingYear = null;
+    if (passingYear !== undefined && passingYear !== null && passingYear !== "") {
+      parsedPassingYear = parseInt(passingYear, 10);
+      if (isNaN(parsedPassingYear) || parsedPassingYear < 1980 || parsedPassingYear > 2050) {
+        return res.status(400).json({
+          success: false,
+          message: "Passing year must be between 1980 and 2050",
+        });
+      }
+    }
+
+    // Validate percentageOrCgpa if provided
+    let parsedScore = null;
+    if (percentageOrCgpa !== undefined && percentageOrCgpa !== null && percentageOrCgpa !== "") {
+      parsedScore = parseFloat(percentageOrCgpa);
+      if (isNaN(parsedScore) || parsedScore < 0 || parsedScore > 100) {
+        return res.status(400).json({
+          success: false,
+          message: "Percentage or CGPA must be a number between 0 and 100",
+        });
+      }
+    }
+
+    // Create User and StudentProfile together inside a Prisma Transaction
+    const newStudent = await prisma.$transaction(async (tx) => {
+      const user = await tx.user.create({
+        data: {
+          name: name.trim(),
+          email: email.trim().toLowerCase(),
+          password: hashedPassword,
+          role: "STUDENT",
+        },
+      });
+
+      const profile = await tx.studentProfile.create({
+        data: {
+          userId: user.id,
+          dateOfBirth: parsedDob,
+          gender: gender ? gender.trim() : null,
+          phoneNumber: phoneNumber ? phoneNumber.trim() : null,
+          state: state ? state.trim() : "Rajasthan",
+          district: district ? district.trim() : null,
+          city: city ? city.trim() : null,
+          currentEducationLevel: currentEducationLevel ? currentEducationLevel.trim() : null,
+          instituteName: instituteName ? instituteName.trim() : null,
+          courseOrStream: courseOrStream ? courseOrStream.trim() : null,
+          passingYear: parsedPassingYear,
+          percentageOrCgpa: parsedScore,
+        },
+      });
+
+      return {
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        createdAt: user.createdAt,
+        updatedAt: user.updatedAt,
+        profile: profile,
+      };
+    });
+
+    return res.status(201).json({
+      success: true,
+      message: "Student created successfully",
+      student: newStudent,
+    });
+  } catch (error) {
+    console.error("Create student error:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error creating student",
+    });
+  }
+});
+
+// -------------------------------------------------------------
+// 7. UPDATE STUDENT (User + StudentProfile in Transaction)
+// Endpoint: PUT /api/students/:id
+// Protected: authenticateToken, requireAdmin
+// -------------------------------------------------------------
+router.put("/:id", authenticateToken, requireAdmin, async (req, res) => {
+  try {
+    const studentId = parseInt(req.params.id, 10);
+    if (isNaN(studentId)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid student ID",
+      });
+    }
+
+    // Verify student exists and has role 'STUDENT'
+    const existingStudent = await prisma.user.findUnique({
+      where: { id: studentId },
+      include: { profile: true },
+    });
+
+    if (!existingStudent || existingStudent.role !== "STUDENT") {
+      return res.status(404).json({
+        success: false,
+        message: "Student not found",
+      });
+    }
+
+    const {
+      name,
+      email,
+      password,
+      dateOfBirth,
+      gender,
+      phoneNumber,
+      state,
+      district,
+      city,
+      currentEducationLevel,
+      instituteName,
+      courseOrStream,
+      passingYear,
+      percentageOrCgpa,
+    } = req.body;
+
+    // If email is changing, verify it is not already used
+    if (email && email.trim().toLowerCase() !== existingStudent.email) {
+      const emailTaken = await prisma.user.findUnique({
+        where: { email: email.trim().toLowerCase() },
+      });
+      if (emailTaken) {
+        return res.status(400).json({
+          success: false,
+          message: "Email is already in use by another account",
+        });
+      }
+    }
+
+    // Prepare User update data
+    const userUpdateData = {};
+    if (name !== undefined) userUpdateData.name = name.trim();
+    if (email !== undefined) userUpdateData.email = email.trim().toLowerCase();
+    if (password !== undefined && password.trim()) {
+      userUpdateData.password = await bcrypt.hash(password.trim(), 10);
+    }
+
+    // Validate dateOfBirth if provided
+    let parsedDob;
+    if (dateOfBirth !== undefined) {
+      if (dateOfBirth === null || dateOfBirth === "") {
+        parsedDob = null;
+      } else {
+        parsedDob = new Date(dateOfBirth);
+        if (isNaN(parsedDob.getTime())) {
+          return res.status(400).json({
+            success: false,
+            message: "Invalid date of birth format. Use YYYY-MM-DD",
+          });
+        }
+      }
+    }
+
+    // Validate passingYear if provided
+    let parsedPassingYear;
+    if (passingYear !== undefined) {
+      if (passingYear === null || passingYear === "") {
+        parsedPassingYear = null;
+      } else {
+        parsedPassingYear = parseInt(passingYear, 10);
+        if (isNaN(parsedPassingYear) || parsedPassingYear < 1980 || parsedPassingYear > 2050) {
+          return res.status(400).json({
+            success: false,
+            message: "Passing year must be between 1980 and 2050",
+          });
+        }
+      }
+    }
+
+    // Validate percentageOrCgpa if provided
+    let parsedScore;
+    if (percentageOrCgpa !== undefined) {
+      if (percentageOrCgpa === null || percentageOrCgpa === "") {
+        parsedScore = null;
+      } else {
+        parsedScore = parseFloat(percentageOrCgpa);
+        if (isNaN(parsedScore) || parsedScore < 0 || parsedScore > 100) {
+          return res.status(400).json({
+            success: false,
+            message: "Percentage or CGPA must be between 0 and 100",
+          });
+        }
+      }
+    }
+
+    // Prepare Profile update data
+    const profileUpdateData = {};
+    if (dateOfBirth !== undefined) profileUpdateData.dateOfBirth = parsedDob;
+    if (gender !== undefined) profileUpdateData.gender = gender ? gender.trim() : null;
+    if (phoneNumber !== undefined) profileUpdateData.phoneNumber = phoneNumber ? phoneNumber.trim() : null;
+    if (state !== undefined) profileUpdateData.state = state ? state.trim() : "Rajasthan";
+    if (district !== undefined) profileUpdateData.district = district ? district.trim() : null;
+    if (city !== undefined) profileUpdateData.city = city ? city.trim() : null;
+    if (currentEducationLevel !== undefined) profileUpdateData.currentEducationLevel = currentEducationLevel ? currentEducationLevel.trim() : null;
+    if (instituteName !== undefined) profileUpdateData.instituteName = instituteName ? instituteName.trim() : null;
+    if (courseOrStream !== undefined) profileUpdateData.courseOrStream = courseOrStream ? courseOrStream.trim() : null;
+    if (passingYear !== undefined) profileUpdateData.passingYear = parsedPassingYear;
+    if (percentageOrCgpa !== undefined) profileUpdateData.percentageOrCgpa = parsedScore;
+
+    // Update User and StudentProfile together in a Transaction
+    const updatedStudent = await prisma.$transaction(async (tx) => {
+      let user = existingStudent;
+      if (Object.keys(userUpdateData).length > 0) {
+        user = await tx.user.update({
+          where: { id: studentId },
+          data: userUpdateData,
+        });
+      }
+
+      // Upsert profile (handles case where user existed without a profile)
+      const profile = await tx.studentProfile.upsert({
+        where: { userId: studentId },
+        create: {
+          userId: studentId,
+          ...profileUpdateData,
+        },
+        update: profileUpdateData,
+      });
+
+      return {
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        createdAt: user.createdAt,
+        updatedAt: user.updatedAt,
+        profile: profile,
+      };
+    });
+
+    return res.status(200).json({
+      success: true,
+      message: "Student updated successfully",
+      student: updatedStudent,
+    });
+  } catch (error) {
+    console.error("Update student error:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error updating student",
+    });
+  }
+});
+
+// -------------------------------------------------------------
+// 8. DELETE STUDENT (Cascades to StudentProfile)
+// Endpoint: DELETE /api/students/:id
+// Protected: authenticateToken, requireAdmin
+// -------------------------------------------------------------
+router.delete("/:id", authenticateToken, requireAdmin, async (req, res) => {
+  try {
+    const studentId = parseInt(req.params.id, 10);
+    if (isNaN(studentId)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid student ID",
+      });
+    }
+
+    // Verify student exists and has role 'STUDENT'
+    const existingStudent = await prisma.user.findUnique({
+      where: { id: studentId },
+    });
+
+    if (!existingStudent || existingStudent.role !== "STUDENT") {
+      return res.status(404).json({
+        success: false,
+        message: "Student not found to delete",
+      });
+    }
+
+    // Delete user in a transaction (StudentProfile is automatically cascade-deleted)
+    await prisma.$transaction(async (tx) => {
+      await tx.user.delete({
+        where: { id: studentId },
+      });
+    });
+
+    return res.status(200).json({
+      success: true,
+      message: "Student and associated profile deleted successfully",
+    });
+  } catch (error) {
+    console.error("Delete student error:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error deleting student",
     });
   }
 });
