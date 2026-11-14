@@ -450,6 +450,123 @@
 }
 
 /* =========================================================
+   Milestone 5: Footer Section
+   ========================================================= */
+
+.home-footer {
+  background-color: #252525; /* Dark Charcoal Government Theme */
+  border-top: 3px solid #D4AF37; /* Royal Gold Top Accent */
+  color: #E0E0E0;
+  border-radius: 6px;
+  padding: 40px 36px 20px;
+  margin-top: 10px;
+}
+
+.footer-container {
+  display: grid;
+  grid-template-columns: 1.5fr 1fr 1fr;
+  gap: 40px;
+  margin-bottom: 30px;
+}
+
+.footer-col {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.footer-brand-title {
+  font-size: 22px;
+  font-weight: 700;
+  color: #FFFFFF;
+  letter-spacing: 0.5px;
+}
+
+.footer-brand-title span {
+  color: #D4AF37; /* Royal Gold */
+}
+
+.footer-dept-name {
+  font-size: 12px;
+  color: #D4AF37;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+.footer-brand-desc {
+  font-size: 13px;
+  line-height: 1.6;
+  color: #B0B0B0;
+  margin: 0;
+}
+
+.footer-heading {
+  font-size: 15px;
+  font-weight: 700;
+  color: #FFFFFF;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  position: relative;
+  padding-bottom: 8px;
+}
+
+.footer-heading::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  width: 28px;
+  height: 2px;
+  background-color: #D4AF37;
+}
+
+.footer-links {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.footer-links li a {
+  color: #B5B5B5;
+  font-size: 13px;
+  text-decoration: none;
+  transition: color 0.2s, padding-left 0.2s;
+  display: inline-block;
+}
+
+.footer-links li a:hover {
+  color: #D4AF37;
+  padding-left: 4px;
+}
+
+/* Footer Bottom Bar */
+.footer-bottom {
+  border-top: 1px solid #383838;
+  padding-top: 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.footer-bottom p {
+  font-size: 12px;
+  color: #8E8E8E;
+  margin: 0;
+}
+
+.footer-disclaimer {
+  font-style: italic;
+  font-size: 11px !important;
+  color: #7A7A7A !important;
+}
+
+/* =========================================================
    Responsive Adjustments
    ========================================================= */
 
@@ -467,6 +584,16 @@
   .notices-grid {
     grid-template-columns: 1fr;
     gap: 16px;
+  }
+
+  .footer-container {
+    grid-template-columns: 1fr;
+    gap: 28px;
+  }
+
+  .footer-bottom {
+    flex-direction: column;
+    align-items: flex-start;
   }
 }
 
@@ -500,6 +627,10 @@
 
   .about-card {
     padding: 24px 20px;
+  }
+
+  .home-footer {
+    padding: 30px 20px 20px;
   }
 }
 
