@@ -1,9 +1,27 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import './StudentPage.css';
 
-// Student Management Page Component - Milestone 2: GET API Integration
+// Initial state for new student form
+const initialFormData = {
+  name: '',
+  email: '',
+  password: '',
+  dateOfBirth: '',
+  gender: '',
+  phoneNumber: '',
+  state: 'Rajasthan',
+  district: '',
+  city: '',
+  currentEducationLevel: '',
+  instituteName: '',
+  courseOrStream: '',
+  passingYear: '',
+  percentageOrCgpa: '',
+};
+
+// Student Management Page Component - Milestone 3 & Milestone 4 (Add Student)
 function StudentPage() {
-  // Search and filter states
+  // Search and filter states (Part A)
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedDistrict, setSelectedDistrict] = useState('ALL');
   const [selectedCourse, setSelectedCourse] = useState('ALL');
@@ -12,6 +30,14 @@ function StudentPage() {
   const [students, setStudents] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [successBanner, setSuccessBanner] = useState(null);
+
+  // Add Student Modal & Form states (Part B)
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [addFormData, setAddFormData] = useState(initialFormData);
+  const [formErrors, setFormErrors] = useState({});
+  const [formSubmitting, setFormSubmitting] = useState(false);
+  const [formApiError, setFormApiError] = useState(null);
 
   // Rajasthan District Filter Options
   const districtOptions = [
@@ -30,15 +56,13 @@ function StudentPage() {
   ];
 
   /**
-   * Native fetch() implementation to retrieve students from GET /api/students
-   * Passes query parameters: search, district, courseOrStream
-   * Includes Authorization: Bearer <token>
+   * Native fetch() to retrieve students from GET /api/students
+   * Supports search, district, and courseOrStream filters
    */
   const fetchStudents = useCallback(async (searchQuery = searchTerm) => {
     setLoading(true);
     setError(null);
 
-    // Retrieve JWT token from client storage
     const token = localStorage.getItem('token') || sessionStorage.getItem('token');
 
     if (!token) {
@@ -49,7 +73,6 @@ function StudentPage() {
     }
 
     try {
-      // Build query string dynamically based on active filters
       const params = new URLSearchParams();
 
       if (searchQuery && searchQuery.trim() !== '') {
@@ -65,7 +88,6 @@ function StudentPage() {
       const queryString = params.toString();
       const endpoint = `/api/students${queryString ? `?${queryString}` : ''}`;
 
-      // Native fetch() call
       const response = await fetch(endpoint, {
         method: 'GET',
         headers: {
@@ -76,7 +98,6 @@ function StudentPage() {
 
       const data = await response.json().catch(() => ({}));
 
-      // Handle HTTP status codes
       if (!response.ok) {
         if (response.status === 401) {
           throw new Error('Your session has expired or the token is invalid (401 Unauthorized). Please log in again.');
@@ -87,7 +108,6 @@ function StudentPage() {
         }
       }
 
-      // Store retrieved database records in React state
       if (data.success && Array.isArray(data.students)) {
         setStudents(data.students);
       } else {
@@ -102,30 +122,166 @@ function StudentPage() {
     }
   }, [selectedDistrict, selectedCourse]);
 
-  // Initial load on mount and whenever district/course filter changes
+  // Load students on mount and whenever district/course changes
   useEffect(() => {
     fetchStudents(searchTerm);
   }, [fetchStudents]);
 
-  // Handle search submission (press Enter or click Search)
+  // Search submission
   const handleSearchSubmit = (e) => {
     if (e) e.preventDefault();
     fetchStudents(searchTerm);
   };
 
-  // Clear search and reset table
+  // Clear search term
   const handleSearchClear = () => {
     setSearchTerm('');
     fetchStudents('');
   };
 
+  // Reset all search and filter dropdowns
+  const handleResetAllFilters = () => {
+    setSearchTerm('');
+    setSelectedDistrict('ALL');
+    setSelectedCourse('ALL');
+  };
+
+  const hasActiveFilters = searchTerm.trim() !== '' || selectedDistrict !== 'ALL' || selectedCourse !== 'ALL';
+
+  /* =========================================================
+     Part B: Add Student Form & Validation Handling
+     ========================================================= */
+
+  const handleInputChange = (field, value) => {
+    setAddFormData((prev) => ({ ...prev, [field]: value }));
+    // Clear field-specific error as user types
+    if (formErrors[field]) {
+      setFormErrors((prev) => ({ ...prev, [field]: null }));
+    }
+  };
+
+  const validateAddForm = () => {
+    const errors = {};
+
+    // 1. Full name validation
+    if (!addFormData.name || !addFormData.name.trim()) {
+      errors.name = 'Student full name is required.';
+    }
+
+    // 2. Email validation
+    if (!addFormData.email || !addFormData.email.trim()) {
+      errors.email = 'Email address is required.';
+    } else {
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(addFormData.email.trim())) {
+        errors.email = 'Please provide a valid email address.';
+      }
+    }
+
+    // 3. Passing Year validation (optional, but if provided must be between 1980 and 2050)
+    if (addFormData.passingYear) {
+      const year = parseInt(addFormData.passingYear, 10);
+      if (isNaN(year) || year < 1980 || year > 2050) {
+        errors.passingYear = 'Passing year must be between 1980 and 2050.';
+      }
+    }
+
+    // 4. Percentage / CGPA validation (optional, but if provided must be between 0 and 100)
+    if (addFormData.percentageOrCgpa !== '' && addFormData.percentageOrCgpa !== null && addFormData.percentageOrCgpa !== undefined) {
+      const score = parseFloat(addFormData.percentageOrCgpa);
+      if (isNaN(score) || score < 0 || score > 100) {
+        errors.percentageOrCgpa = 'Percentage/CGPA must be a valid number between 0 and 100.';
+      }
+    }
+
+    setFormErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+
+  /**
+   * POST /api/students using native fetch()
+   */
+  const handleAddStudentSubmit = async (e) => {
+    e.preventDefault();
+    setFormApiError(null);
+
+    // Validate inputs
+    if (!validateAddForm()) {
+      return;
+    }
+
+    setFormSubmitting(true);
+    const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+
+    if (!token) {
+      setFormApiError('Administrator token is missing. Please log in again.');
+      setFormSubmitting(false);
+      return;
+    }
+
+    try {
+      // Build payload matching backend expected fields
+      const payload = {
+        name: addFormData.name.trim(),
+        email: addFormData.email.trim().toLowerCase(),
+        password: addFormData.password.trim() || undefined,
+        dateOfBirth: addFormData.dateOfBirth || null,
+        gender: addFormData.gender || null,
+        phoneNumber: addFormData.phoneNumber.trim() || null,
+        state: addFormData.state.trim() || 'Rajasthan',
+        district: addFormData.district || null,
+        city: addFormData.city.trim() || null,
+        currentEducationLevel: addFormData.currentEducationLevel || null,
+        instituteName: addFormData.instituteName.trim() || null,
+        courseOrStream: addFormData.courseOrStream || null,
+        passingYear: addFormData.passingYear ? parseInt(addFormData.passingYear, 10) : null,
+        percentageOrCgpa: addFormData.percentageOrCgpa !== '' ? parseFloat(addFormData.percentageOrCgpa) : null,
+      };
+
+      const response = await fetch('/api/students', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify(payload),
+      });
+
+      const data = await response.json().catch(() => ({}));
+
+      if (!response.ok) {
+        if (response.status === 400) {
+          throw new Error(data.message || 'Invalid student data or email already in use.');
+        } else if (response.status === 401) {
+          throw new Error('Your session has expired (401 Unauthorized). Please log in again.');
+        } else if (response.status === 403) {
+          throw new Error('Access denied (403 Forbidden). Admin privileges required.');
+        } else {
+          throw new Error(data.message || `Server returned error status ${response.status}`);
+        }
+      }
+
+      // Successful creation
+      setIsAddModalOpen(false);
+      setAddFormData(initialFormData);
+      setFormErrors({});
+      setSuccessBanner(`Student "${data.student?.name || 'New Student'}" created successfully.`);
+
+      // Refresh student list and update statistics
+      fetchStudents(searchTerm);
+    } catch (err) {
+      console.error('Error adding student:', err);
+      setFormApiError(err.message || 'Failed to create student record.');
+    } finally {
+      setFormSubmitting(false);
+    }
+  };
+
   /* =========================================================
      Calculated Statistics from Real API Data
      ========================================================= */
-  // 1. Total Students returned from database
   const totalStudents = students.length;
 
-  // 2. Completed Profiles: defined as having district, courseOrStream, and percentageOrCgpa populated
   const completedProfiles = students.filter(
     (s) => s.profile && 
            s.profile.district && 
@@ -134,7 +290,6 @@ function StudentPage() {
            s.profile.percentageOrCgpa !== undefined
   ).length;
 
-  // 3. Districts Covered: unique count of non-empty student districts
   const districtsCovered = new Set(
     students
       .map((s) => s.profile?.district)
@@ -144,6 +299,20 @@ function StudentPage() {
   return (
     <div className="student-page">
       
+      {/* Success Notification Banner */}
+      {successBanner && (
+        <div className="success-banner">
+          <span>✓ {successBanner}</span>
+          <button 
+            type="button" 
+            className="success-banner-close"
+            onClick={() => setSuccessBanner(null)}
+          >
+            ✕
+          </button>
+        </div>
+      )}
+
       {/* 1. Header Section */}
       <header className="student-header">
         <span className="student-header-badge">
@@ -156,7 +325,7 @@ function StudentPage() {
         </p>
       </header>
 
-      {/* 2. Key Statistics Cards (Dynamically computed from API records) */}
+      {/* 2. Key Statistics Cards */}
       <section className="stats-grid">
         <div className="stat-card">
           <div className="stat-info">
@@ -200,11 +369,11 @@ function StudentPage() {
         </div>
       </section>
 
-      {/* 3. Action Toolbar: Search, Filters & Add Button */}
+      {/* 3. Action Toolbar: Search, Filters & Add Button (Part A & B) */}
       <section className="toolbar-card">
         <form className="toolbar-filters" onSubmit={handleSearchSubmit}>
           
-          {/* Search Box */}
+          {/* Search Box (by name, email, or numeric ID) */}
           <div className="search-box">
             <span className="search-icon">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -215,7 +384,7 @@ function StudentPage() {
             <input 
               type="text" 
               className="search-input"
-              placeholder="Search by name, email, or ID..."
+              placeholder="Search by name, email, or student ID..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
@@ -269,13 +438,28 @@ function StudentPage() {
             ))}
           </select>
 
+          {/* Reset All Filters Button */}
+          {hasActiveFilters && (
+            <button 
+              type="button" 
+              className="btn-reset-filters"
+              onClick={handleResetAllFilters}
+            >
+              Reset Filters
+            </button>
+          )}
+
         </form>
 
-        {/* Add Student Primary Action */}
+        {/* Add Student Primary Action Button */}
         <button 
           type="button" 
           className="btn-add-student"
-          onClick={() => alert('Add Student dialog will be implemented in upcoming milestone.')}
+          onClick={() => {
+            setFormErrors({});
+            setFormApiError(null);
+            setIsAddModalOpen(true);
+          }}
         >
           <span>+</span>
           <span>Add Student</span>
@@ -312,8 +496,15 @@ function StudentPage() {
             <div className="state-icon">📋</div>
             <h3 className="state-title">No Student Records Found</h3>
             <p className="state-message">
-              No students match the current filter criteria or directory is empty.
+              {hasActiveFilters 
+                ? 'No students match the active search and filter criteria. Try resetting your filters.' 
+                : 'The student directory is currently empty. Click "+ Add Student" above to create a new student record.'}
             </p>
+            {hasActiveFilters && (
+              <button className="btn-retry" onClick={handleResetAllFilters}>
+                Clear All Filters
+              </button>
+            )}
           </div>
         )}
 
@@ -360,6 +551,273 @@ function StudentPage() {
         )}
 
       </section>
+
+      {/* =========================================================
+          Add Student Modal (Milestone 4)
+          ========================================================= */}
+      {isAddModalOpen && (
+        <div className="modal-overlay" onClick={() => !formSubmitting && setIsAddModalOpen(false)}>
+          <div className="modal-card" onClick={(e) => e.stopPropagation()}>
+            
+            {/* Modal Header */}
+            <div className="modal-header">
+              <div>
+                <h3 className="modal-title">Add New Student</h3>
+                <p className="modal-subtitle">
+                  Create a new student account and technical education profile
+                </p>
+              </div>
+              <button 
+                type="button" 
+                className="modal-close-btn"
+                disabled={formSubmitting}
+                onClick={() => setIsAddModalOpen(false)}
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Modal Form */}
+            <form onSubmit={handleAddStudentSubmit}>
+              <div className="modal-body">
+                
+                {/* Server Error Alert Banner */}
+                {formApiError && (
+                  <div className="modal-alert-error">
+                    ⚠️ {formApiError}
+                  </div>
+                )}
+
+                {/* Section A: Account Information */}
+                <div className="form-section-title">1. Account Information</div>
+                
+                <div className="form-grid-2">
+                  <div className="form-group">
+                    <label className="form-label">
+                      Full Name <span className="required-star">*</span>
+                    </label>
+                    <input 
+                      type="text" 
+                      className={`form-input ${formErrors.name ? 'input-has-error' : ''}`}
+                      placeholder="e.g. Ramesh Kumar"
+                      value={addFormData.name}
+                      onChange={(e) => handleInputChange('name', e.target.value)}
+                    />
+                    {formErrors.name && (
+                      <span className="form-field-error">{formErrors.name}</span>
+                    )}
+                  </div>
+
+                  <div className="form-group">
+                    <label className="form-label">
+                      Email Address <span className="required-star">*</span>
+                    </label>
+                    <input 
+                      type="email" 
+                      className={`form-input ${formErrors.email ? 'input-has-error' : ''}`}
+                      placeholder="e.g. ramesh@example.com"
+                      value={addFormData.email}
+                      onChange={(e) => handleInputChange('email', e.target.value)}
+                    />
+                    {formErrors.email && (
+                      <span className="form-field-error">{formErrors.email}</span>
+                    )}
+                  </div>
+                </div>
+
+                <div className="form-group">
+                  <label className="form-label">
+                    Initial Password (Optional — defaults to 'Student@123')
+                  </label>
+                  <input 
+                    type="password" 
+                    className="form-input"
+                    placeholder="Leave blank for default password"
+                    value={addFormData.password}
+                    onChange={(e) => handleInputChange('password', e.target.value)}
+                  />
+                </div>
+
+                {/* Section B: Academic & Personal Profile */}
+                <div className="form-section-title">2. Academic & Personal Profile</div>
+
+                <div className="form-grid-3">
+                  <div className="form-group">
+                    <label className="form-label">Date of Birth</label>
+                    <input 
+                      type="date" 
+                      className="form-input"
+                      value={addFormData.dateOfBirth}
+                      onChange={(e) => handleInputChange('dateOfBirth', e.target.value)}
+                    />
+                  </div>
+
+                  <div className="form-group">
+                    <label className="form-label">Gender</label>
+                    <select 
+                      className="form-select"
+                      value={addFormData.gender}
+                      onChange={(e) => handleInputChange('gender', e.target.value)}
+                    >
+                      <option value="">Select Gender</option>
+                      <option value="Male">Male</option>
+                      <option value="Female">Female</option>
+                      <option value="Other">Other</option>
+                    </select>
+                  </div>
+
+                  <div className="form-group">
+                    <label className="form-label">Phone Number</label>
+                    <input 
+                      type="tel" 
+                      className="form-input"
+                      placeholder="e.g. 9876543210"
+                      value={addFormData.phoneNumber}
+                      onChange={(e) => handleInputChange('phoneNumber', e.target.value)}
+                    />
+                  </div>
+                </div>
+
+                <div className="form-grid-3">
+                  <div className="form-group">
+                    <label className="form-label">State</label>
+                    <input 
+                      type="text" 
+                      className="form-input"
+                      value={addFormData.state}
+                      onChange={(e) => handleInputChange('state', e.target.value)}
+                    />
+                  </div>
+
+                  <div className="form-group">
+                    <label className="form-label">District</label>
+                    <select 
+                      className="form-select"
+                      value={addFormData.district}
+                      onChange={(e) => handleInputChange('district', e.target.value)}
+                    >
+                      <option value="">Select District</option>
+                      {districtOptions.map((dist) => (
+                        <option key={dist} value={dist}>{dist}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div className="form-group">
+                    <label className="form-label">City</label>
+                    <input 
+                      type="text" 
+                      className="form-input"
+                      placeholder="e.g. Jaipur"
+                      value={addFormData.city}
+                      onChange={(e) => handleInputChange('city', e.target.value)}
+                    />
+                  </div>
+                </div>
+
+                <div className="form-grid-2">
+                  <div className="form-group">
+                    <label className="form-label">Education Level</label>
+                    <select 
+                      className="form-select"
+                      value={addFormData.currentEducationLevel}
+                      onChange={(e) => handleInputChange('currentEducationLevel', e.target.value)}
+                    >
+                      <option value="">Select Level</option>
+                      <option value="10th">10th Standard</option>
+                      <option value="12th">12th Standard</option>
+                      <option value="Polytechnic Diploma">Polytechnic Diploma</option>
+                      <option value="ITI">ITI</option>
+                      <option value="Undergraduate">Undergraduate</option>
+                    </select>
+                  </div>
+
+                  <div className="form-group">
+                    <label className="form-label">School / Institute Name</label>
+                    <input 
+                      type="text" 
+                      className="form-input"
+                      placeholder="e.g. Govt Polytechnic College, Jaipur"
+                      value={addFormData.instituteName}
+                      onChange={(e) => handleInputChange('instituteName', e.target.value)}
+                    />
+                  </div>
+                </div>
+
+                <div className="form-grid-3">
+                  <div className="form-group">
+                    <label className="form-label">Course / Stream</label>
+                    <select 
+                      className="form-select"
+                      value={addFormData.courseOrStream}
+                      onChange={(e) => handleInputChange('courseOrStream', e.target.value)}
+                    >
+                      <option value="">Select Course</option>
+                      {courseOptions.map((course) => (
+                        <option key={course} value={course}>{course}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div className="form-group">
+                    <label className="form-label">Passing Year</label>
+                    <input 
+                      type="number" 
+                      className={`form-input ${formErrors.passingYear ? 'input-has-error' : ''}`}
+                      placeholder="e.g. 2025"
+                      min="1980"
+                      max="2050"
+                      value={addFormData.passingYear}
+                      onChange={(e) => handleInputChange('passingYear', e.target.value)}
+                    />
+                    {formErrors.passingYear && (
+                      <span className="form-field-error">{formErrors.passingYear}</span>
+                    )}
+                  </div>
+
+                  <div className="form-group">
+                    <label className="form-label">Percentage / CGPA</label>
+                    <input 
+                      type="number" 
+                      step="0.01"
+                      className={`form-input ${formErrors.percentageOrCgpa ? 'input-has-error' : ''}`}
+                      placeholder="e.g. 85.5"
+                      min="0"
+                      max="100"
+                      value={addFormData.percentageOrCgpa}
+                      onChange={(e) => handleInputChange('percentageOrCgpa', e.target.value)}
+                    />
+                    {formErrors.percentageOrCgpa && (
+                      <span className="form-field-error">{formErrors.percentageOrCgpa}</span>
+                    )}
+                  </div>
+                </div>
+
+              </div>
+
+              {/* Modal Footer Actions */}
+              <div className="modal-footer">
+                <button 
+                  type="button" 
+                  className="btn-modal-cancel"
+                  disabled={formSubmitting}
+                  onClick={() => setIsAddModalOpen(false)}
+                >
+                  Cancel
+                </button>
+                <button 
+                  type="submit" 
+                  className="btn-modal-submit"
+                  disabled={formSubmitting}
+                >
+                  {formSubmitting ? 'Saving Student...' : 'Save Student'}
+                </button>
+              </div>
+            </form>
+
+          </div>
+        </div>
+      )}
 
     </div>
   );
