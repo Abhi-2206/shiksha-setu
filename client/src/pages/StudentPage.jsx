@@ -39,6 +39,29 @@ function StudentPage() {
   const [formSubmitting, setFormSubmitting] = useState(false);
   const [formApiError, setFormApiError] = useState(null);
 
+  // Edit Student Modal & Form states (Milestone 5)
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [editingStudentId, setEditingStudentId] = useState(null);
+  const [editFormData, setEditFormData] = useState({
+    name: '',
+    email: '',
+    dateOfBirth: '',
+    gender: '',
+    phoneNumber: '',
+    state: 'Rajasthan',
+    district: '',
+    city: '',
+    currentEducationLevel: '',
+    instituteName: '',
+    courseOrStream: '',
+    passingYear: '',
+    scoreType: 'PERCENTAGE',
+    percentageOrCgpa: '',
+  });
+  const [editFormErrors, setEditFormErrors] = useState({});
+  const [editFormSubmitting, setEditFormSubmitting] = useState(false);
+  const [editFormApiError, setEditFormApiError] = useState(null);
+
   // Rajasthan District Filter Options
   const districtOptions = [
     'Jaipur', 'Jodhpur', 'Kota', 'Ajmer', 'Bikaner',
@@ -274,6 +297,182 @@ function StudentPage() {
       setFormApiError(err.message || 'Failed to create student record.');
     } finally {
       setFormSubmitting(false);
+    }
+  };
+
+  /* =========================================================
+     Milestone 5: Edit Student Form & PUT API Handling
+     ========================================================= */
+
+  const handleOpenEditModal = (student) => {
+    setEditingStudentId(student.id);
+
+    // Format dateOfBirth to YYYY-MM-DD for HTML5 date input
+    let formattedDob = '';
+    if (student.profile?.dateOfBirth) {
+      const dobDate = new Date(student.profile.dateOfBirth);
+      if (!isNaN(dobDate.getTime())) {
+        formattedDob = dobDate.toISOString().split('T')[0];
+      }
+    }
+
+    const rawScore = student.profile?.percentageOrCgpa;
+    let formattedScore = '';
+    if (rawScore !== null && rawScore !== undefined && rawScore !== '') {
+      formattedScore = String(rawScore);
+    }
+
+    setEditFormData({
+      name: student.name || '',
+      email: student.email || '',
+      dateOfBirth: formattedDob,
+      gender: student.profile?.gender || '',
+      phoneNumber: student.profile?.phoneNumber || '',
+      state: student.profile?.state || 'Rajasthan',
+      district: student.profile?.district || '',
+      city: student.profile?.city || '',
+      currentEducationLevel: student.profile?.currentEducationLevel || '',
+      instituteName: student.profile?.instituteName || '',
+      courseOrStream: student.profile?.courseOrStream || '',
+      passingYear: student.profile?.passingYear ? String(student.profile.passingYear) : '',
+      scoreType: 'PERCENTAGE',
+      percentageOrCgpa: formattedScore,
+    });
+
+    setEditFormErrors({});
+    setEditFormApiError(null);
+    setIsEditModalOpen(true);
+  };
+
+  const handleEditInputChange = (field, value) => {
+    setEditFormData((prev) => ({ ...prev, [field]: value }));
+    if (editFormErrors[field]) {
+      setEditFormErrors((prev) => ({ ...prev, [field]: null }));
+    }
+  };
+
+  const validateEditForm = () => {
+    const errors = {};
+
+    // 1. Full name validation (required)
+    if (!editFormData.name || !editFormData.name.trim()) {
+      errors.name = 'Student full name is required.';
+    }
+
+    // 2. Email validation (required and valid email format)
+    if (!editFormData.email || !editFormData.email.trim()) {
+      errors.email = 'Email address is required.';
+    } else {
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(editFormData.email.trim())) {
+        errors.email = 'Please provide a valid email address.';
+      }
+    }
+
+    // 3. Passing Year validation (optional, but if provided must be between 1980 and 2050)
+    if (editFormData.passingYear) {
+      const year = parseInt(editFormData.passingYear, 10);
+      if (isNaN(year) || year < 1980 || year > 2050) {
+        errors.passingYear = 'Passing year must be between 1980 and 2050.';
+      }
+    }
+
+    // 4. Academic score validation (Percentage: 0-100% | CGPA: 0-10 on 10-point scale)
+    if (editFormData.percentageOrCgpa !== '' && editFormData.percentageOrCgpa !== null && editFormData.percentageOrCgpa !== undefined) {
+      const score = parseFloat(editFormData.percentageOrCgpa);
+      if (isNaN(score)) {
+        errors.percentageOrCgpa = 'Score must be a valid numeric value.';
+      } else if (editFormData.scoreType === 'CGPA') {
+        if (score < 0 || score > 10) {
+          errors.percentageOrCgpa = 'CGPA must be a valid number between 0.00 and 10.00 (10-point scale).';
+        }
+      } else {
+        if (score < 0 || score > 100) {
+          errors.percentageOrCgpa = 'Percentage must be a valid number between 0.00% and 100.00%.';
+        }
+      }
+    }
+
+    setEditFormErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+
+  const handleEditStudentSubmit = async (e) => {
+    e.preventDefault();
+    setEditFormApiError(null);
+
+    if (!validateEditForm()) {
+      return;
+    }
+
+    setEditFormSubmitting(true);
+    const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+
+    if (!token) {
+      setEditFormApiError('Administrator token is missing. Please log in again.');
+      setEditFormSubmitting(false);
+      return;
+    }
+
+    try {
+      const payload = {
+        name: editFormData.name.trim(),
+        email: editFormData.email.trim().toLowerCase(),
+        dateOfBirth: editFormData.dateOfBirth || null,
+        gender: editFormData.gender || null,
+        phoneNumber: editFormData.phoneNumber.trim() || null,
+        state: editFormData.state.trim() || 'Rajasthan',
+        district: editFormData.district || null,
+        city: editFormData.city.trim() || null,
+        currentEducationLevel: editFormData.currentEducationLevel || null,
+        instituteName: editFormData.instituteName.trim() || null,
+        courseOrStream: editFormData.courseOrStream || null,
+        passingYear: editFormData.passingYear ? parseInt(editFormData.passingYear, 10) : null,
+        percentageOrCgpa: editFormData.percentageOrCgpa !== '' ? parseFloat(editFormData.percentageOrCgpa) : null,
+      };
+
+      const response = await fetch(`/api/students/${editingStudentId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify(payload),
+      });
+
+      const data = await response.json().catch(() => ({}));
+
+      if (!response.ok) {
+        const errorMsg = data.message || `Server returned error status ${response.status}`;
+        if (response.status === 400) {
+          if (data.message && data.message.toLowerCase().includes('email')) {
+            setEditFormErrors((prev) => ({ ...prev, email: data.message }));
+          }
+          throw new Error(errorMsg);
+        } else if (response.status === 401) {
+          throw new Error('Your session has expired (401 Unauthorized). Please log in again.');
+        } else if (response.status === 403) {
+          throw new Error('Access denied (403 Forbidden). Admin privileges required.');
+        } else if (response.status === 404) {
+          throw new Error(data.message || 'Student record not found.');
+        } else {
+          throw new Error(errorMsg);
+        }
+      }
+
+      // Successful update
+      setIsEditModalOpen(false);
+      setEditingStudentId(null);
+      setEditFormErrors({});
+      setSuccessBanner(`Student "${data.student?.name || 'Student'}" updated successfully.`);
+
+      // Refresh student list preserving current search and filters
+      fetchStudents(searchTerm);
+    } catch (err) {
+      console.error('Error updating student:', err);
+      setEditFormApiError(err.message || 'Failed to update student record.');
+    } finally {
+      setEditFormSubmitting(false);
     }
   };
 
@@ -539,7 +738,13 @@ function StudentPage() {
                     <td>
                       <div className="table-actions">
                         <button className="action-btn btn-view" title="View details">View</button>
-                        <button className="action-btn btn-edit" title="Edit student">Edit</button>
+                        <button 
+                          className="action-btn btn-edit" 
+                          title="Edit student"
+                          onClick={() => handleOpenEditModal(student)}
+                        >
+                          Edit
+                        </button>
                         <button className="action-btn btn-delete" title="Delete student">Delete</button>
                       </div>
                     </td>
@@ -811,6 +1016,278 @@ function StudentPage() {
                   disabled={formSubmitting}
                 >
                   {formSubmitting ? 'Saving Student...' : 'Save Student'}
+                </button>
+              </div>
+            </form>
+
+          </div>
+        </div>
+      )}
+
+      {/* =========================================================
+          Edit Student Modal (Milestone 5)
+          ========================================================= */}
+      {isEditModalOpen && (
+        <div className="modal-overlay" onClick={() => !editFormSubmitting && setIsEditModalOpen(false)}>
+          <div className="modal-card" onClick={(e) => e.stopPropagation()}>
+            
+            {/* Modal Header */}
+            <div className="modal-header">
+              <div>
+                <h3 className="modal-title">Edit Student</h3>
+                <p className="modal-subtitle">
+                  Update account and technical education details for student #{editingStudentId}
+                </p>
+              </div>
+              <button 
+                type="button" 
+                className="modal-close-btn"
+                disabled={editFormSubmitting}
+                onClick={() => setIsEditModalOpen(false)}
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Modal Form */}
+            <form onSubmit={handleEditStudentSubmit}>
+              <div className="modal-body">
+                
+                {/* Server Error Alert Banner */}
+                {editFormApiError && (
+                  <div className="modal-alert-error">
+                    ⚠️ {editFormApiError}
+                  </div>
+                )}
+
+                {/* Section A: Account Information */}
+                <div className="form-section-title">1. Account Information</div>
+                
+                <div className="form-grid-2">
+                  <div className="form-group">
+                    <label className="form-label">
+                      Full Name <span className="required-star">*</span>
+                    </label>
+                    <input 
+                      type="text" 
+                      className={`form-input ${editFormErrors.name ? 'input-has-error' : ''}`}
+                      placeholder="e.g. Ramesh Kumar"
+                      value={editFormData.name}
+                      onChange={(e) => handleEditInputChange('name', e.target.value)}
+                    />
+                    {editFormErrors.name && (
+                      <span className="form-field-error">{editFormErrors.name}</span>
+                    )}
+                  </div>
+
+                  <div className="form-group">
+                    <label className="form-label">
+                      Email Address <span className="required-star">*</span>
+                    </label>
+                    <input 
+                      type="email" 
+                      className={`form-input ${editFormErrors.email ? 'input-has-error' : ''}`}
+                      placeholder="e.g. ramesh@example.com"
+                      value={editFormData.email}
+                      onChange={(e) => handleEditInputChange('email', e.target.value)}
+                    />
+                    {editFormErrors.email && (
+                      <span className="form-field-error">{editFormErrors.email}</span>
+                    )}
+                  </div>
+                </div>
+
+                {/* Section B: Academic & Personal Profile */}
+                <div className="form-section-title">2. Academic & Personal Profile</div>
+
+                <div className="form-grid-3">
+                  <div className="form-group">
+                    <label className="form-label">Date of Birth</label>
+                    <input 
+                      type="date" 
+                      className="form-input"
+                      value={editFormData.dateOfBirth}
+                      onChange={(e) => handleEditInputChange('dateOfBirth', e.target.value)}
+                    />
+                  </div>
+
+                  <div className="form-group">
+                    <label className="form-label">Gender</label>
+                    <select 
+                      className="form-select"
+                      value={editFormData.gender}
+                      onChange={(e) => handleEditInputChange('gender', e.target.value)}
+                    >
+                      <option value="">Select Gender</option>
+                      <option value="Male">Male</option>
+                      <option value="Female">Female</option>
+                      <option value="Other">Other</option>
+                    </select>
+                  </div>
+
+                  <div className="form-group">
+                    <label className="form-label">Phone Number</label>
+                    <input 
+                      type="tel" 
+                      className="form-input"
+                      placeholder="e.g. 9876543210"
+                      value={editFormData.phoneNumber}
+                      onChange={(e) => handleEditInputChange('phoneNumber', e.target.value)}
+                    />
+                  </div>
+                </div>
+
+                <div className="form-grid-3">
+                  <div className="form-group">
+                    <label className="form-label">State</label>
+                    <input 
+                      type="text" 
+                      className="form-input"
+                      value={editFormData.state}
+                      onChange={(e) => handleEditInputChange('state', e.target.value)}
+                    />
+                  </div>
+
+                  <div className="form-group">
+                    <label className="form-label">District</label>
+                    <select 
+                      className="form-select"
+                      value={editFormData.district}
+                      onChange={(e) => handleEditInputChange('district', e.target.value)}
+                    >
+                      <option value="">Select District</option>
+                      {districtOptions.map((dist) => (
+                        <option key={dist} value={dist}>{dist}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div className="form-group">
+                    <label className="form-label">City</label>
+                    <input 
+                      type="text" 
+                      className="form-input"
+                      placeholder="e.g. Jaipur"
+                      value={editFormData.city}
+                      onChange={(e) => handleEditInputChange('city', e.target.value)}
+                    />
+                  </div>
+                </div>
+
+                <div className="form-grid-2">
+                  <div className="form-group">
+                    <label className="form-label">Education Level</label>
+                    <select 
+                      className="form-select"
+                      value={editFormData.currentEducationLevel}
+                      onChange={(e) => handleEditInputChange('currentEducationLevel', e.target.value)}
+                    >
+                      <option value="">Select Level</option>
+                      <option value="10th">10th Standard</option>
+                      <option value="12th">12th Standard</option>
+                      <option value="Polytechnic Diploma">Polytechnic Diploma</option>
+                      <option value="ITI">ITI</option>
+                      <option value="Undergraduate">Undergraduate</option>
+                    </select>
+                  </div>
+
+                  <div className="form-group">
+                    <label className="form-label">School / Institute Name</label>
+                    <input 
+                      type="text" 
+                      className="form-input"
+                      placeholder="e.g. Govt Polytechnic College, Jaipur"
+                      value={editFormData.instituteName}
+                      onChange={(e) => handleEditInputChange('instituteName', e.target.value)}
+                    />
+                  </div>
+                </div>
+
+                <div className="form-grid-2">
+                  <div className="form-group">
+                    <label className="form-label">Course / Stream</label>
+                    <select 
+                      className="form-select"
+                      value={editFormData.courseOrStream}
+                      onChange={(e) => handleEditInputChange('courseOrStream', e.target.value)}
+                    >
+                      <option value="">Select Course</option>
+                      {courseOptions.map((course) => (
+                        <option key={course} value={course}>{course}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div className="form-group">
+                    <label className="form-label">Passing Year</label>
+                    <input 
+                      type="number" 
+                      className={`form-input ${editFormErrors.passingYear ? 'input-has-error' : ''}`}
+                      placeholder="e.g. 2025"
+                      min="1980"
+                      max="2050"
+                      value={editFormData.passingYear}
+                      onChange={(e) => handleEditInputChange('passingYear', e.target.value)}
+                    />
+                    {editFormErrors.passingYear && (
+                      <span className="form-field-error">{editFormErrors.passingYear}</span>
+                    )}
+                  </div>
+                </div>
+
+                <div className="form-grid-2">
+                  <div className="form-group">
+                    <label className="form-label">Grading System</label>
+                    <select
+                      className="form-select"
+                      value={editFormData.scoreType}
+                      onChange={(e) => {
+                        handleEditInputChange('scoreType', e.target.value);
+                      }}
+                    >
+                      <option value="PERCENTAGE">Percentage (%)</option>
+                      <option value="CGPA">CGPA (10-Point Scale)</option>
+                    </select>
+                  </div>
+
+                  <div className="form-group">
+                    <label className="form-label">
+                      {editFormData.scoreType === 'CGPA' ? 'CGPA Score (0.00 – 10.00)' : 'Percentage (%) (0.00 – 100.00)'}
+                    </label>
+                    <input 
+                      type="number" 
+                      step="0.01"
+                      className={`form-input ${editFormErrors.percentageOrCgpa ? 'input-has-error' : ''}`}
+                      placeholder={editFormData.scoreType === 'CGPA' ? 'e.g. 8.75' : 'e.g. 85.50'}
+                      min="0"
+                      max={editFormData.scoreType === 'CGPA' ? '10' : '100'}
+                      value={editFormData.percentageOrCgpa}
+                      onChange={(e) => handleEditInputChange('percentageOrCgpa', e.target.value)}
+                    />
+                    {editFormErrors.percentageOrCgpa && (
+                      <span className="form-field-error">{editFormErrors.percentageOrCgpa}</span>
+                    )}
+                  </div>
+                </div>
+
+              </div>
+
+              {/* Modal Footer Actions */}
+              <div className="modal-footer">
+                <button 
+                  type="button" 
+                  className="btn-modal-cancel"
+                  disabled={editFormSubmitting}
+                  onClick={() => setIsEditModalOpen(false)}
+                >
+                  Cancel
+                </button>
+                <button 
+                  type="submit" 
+                  className="btn-modal-submit"
+                  disabled={editFormSubmitting}
+                >
+                  {editFormSubmitting ? 'Saving Changes...' : 'Save Changes'}
                 </button>
               </div>
             </form>
