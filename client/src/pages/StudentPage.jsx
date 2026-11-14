@@ -62,6 +62,12 @@ function StudentPage() {
   const [editFormSubmitting, setEditFormSubmitting] = useState(false);
   const [editFormApiError, setEditFormApiError] = useState(null);
 
+  // Delete Student Modal & Action states (Milestone 6)
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [studentToDelete, setStudentToDelete] = useState(null);
+  const [deleteSubmitting, setDeleteSubmitting] = useState(false);
+  const [deleteError, setDeleteError] = useState(null);
+
   // Rajasthan District Filter Options
   const districtOptions = [
     'Jaipur', 'Jodhpur', 'Kota', 'Ajmer', 'Bikaner',
@@ -477,6 +483,78 @@ function StudentPage() {
   };
 
   /* =========================================================
+     Milestone 6: Delete Student Action & Modal Handling
+     ========================================================= */
+
+  const handleOpenDeleteModal = (student) => {
+    setStudentToDelete({
+      id: student.id,
+      name: student.name,
+    });
+    setDeleteError(null);
+    setIsDeleteModalOpen(true);
+  };
+
+  const handleCloseDeleteModal = () => {
+    if (!deleteSubmitting) {
+      setIsDeleteModalOpen(false);
+      setStudentToDelete(null);
+      setDeleteError(null);
+    }
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!studentToDelete) return;
+
+    setDeleteSubmitting(true);
+    setDeleteError(null);
+
+    const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+    if (!token) {
+      setDeleteError('Administrator token is missing. Please log in again.');
+      setDeleteSubmitting(false);
+      return;
+    }
+
+    try {
+      const response = await fetch(`/api/students/${studentToDelete.id}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+
+      const data = await response.json().catch(() => ({}));
+
+      if (!response.ok) {
+        if (response.status === 401) {
+          throw new Error('Your session has expired (401 Unauthorized). Please log in again.');
+        } else if (response.status === 403) {
+          throw new Error('Access denied (403 Forbidden). Admin privileges required.');
+        } else if (response.status === 404) {
+          throw new Error(data.message || 'Student record not found or already deleted.');
+        } else {
+          throw new Error(data.message || `Failed to delete student (Status: ${response.status}).`);
+        }
+      }
+
+      // Successful deletion
+      const deletedName = studentToDelete.name;
+      setIsDeleteModalOpen(false);
+      setStudentToDelete(null);
+      setSuccessBanner(`Student "${deletedName}" deleted successfully.`);
+
+      // Refresh student list preserving current search and filters
+      fetchStudents(searchTerm);
+    } catch (err) {
+      console.error('Error deleting student:', err);
+      setDeleteError(err.message || 'An error occurred while deleting the student.');
+    } finally {
+      setDeleteSubmitting(false);
+    }
+  };
+
+  /* =========================================================
      Calculated Statistics from Real API Data
      ========================================================= */
   const totalStudents = students.length;
@@ -745,7 +823,13 @@ function StudentPage() {
                         >
                           Edit
                         </button>
-                        <button className="action-btn btn-delete" title="Delete student">Delete</button>
+                        <button 
+                          className="action-btn btn-delete" 
+                          title="Delete student"
+                          onClick={() => handleOpenDeleteModal(student)}
+                        >
+                          Delete
+                        </button>
                       </div>
                     </td>
                   </tr>
@@ -1291,6 +1375,74 @@ function StudentPage() {
                 </button>
               </div>
             </form>
+
+          </div>
+        </div>
+      )}
+
+      {/* =========================================================
+          Delete Confirmation Modal (Milestone 6)
+          ========================================================= */}
+      {isDeleteModalOpen && studentToDelete && (
+        <div className="modal-overlay" onClick={handleCloseDeleteModal}>
+          <div className="modal-card modal-card-delete" onClick={(e) => e.stopPropagation()}>
+            
+            {/* Modal Header */}
+            <div className="modal-header">
+              <div>
+                <h3 className="modal-title" style={{ color: '#C62828' }}>Confirm Deletion</h3>
+                <p className="modal-subtitle">
+                  Student Record #{studentToDelete.id}
+                </p>
+              </div>
+              <button 
+                type="button" 
+                className="modal-close-btn"
+                disabled={deleteSubmitting}
+                onClick={handleCloseDeleteModal}
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Modal Body */}
+            <div className="modal-body">
+              {deleteError && (
+                <div className="modal-alert-error">
+                  ⚠️ {deleteError}
+                </div>
+              )}
+
+              <div className="delete-dialog-content">
+                <div className="delete-warning-icon">⚠️</div>
+                <p className="delete-dialog-message">
+                  Are you sure you want to delete <span className="delete-student-highlight">{studentToDelete.name}</span>? This action cannot be undone.
+                </p>
+                <p className="delete-dialog-subtext">
+                  This will permanently remove the student account, login access, and technical education profile from the database.
+                </p>
+              </div>
+            </div>
+
+            {/* Modal Footer Actions */}
+            <div className="modal-footer">
+              <button 
+                type="button" 
+                className="btn-modal-cancel"
+                disabled={deleteSubmitting}
+                onClick={handleCloseDeleteModal}
+              >
+                Cancel
+              </button>
+              <button 
+                type="button" 
+                className="btn-modal-delete"
+                disabled={deleteSubmitting}
+                onClick={handleConfirmDelete}
+              >
+                {deleteSubmitting ? 'Deleting Student...' : 'Delete Student'}
+              </button>
+            </div>
 
           </div>
         </div>
