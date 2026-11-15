@@ -3,7 +3,13 @@
 const { app, BrowserWindow, shell } = require('electron');
 const path = require('path');
 
+// In development: Vite dev server must already be running on this port.
+// In production: Electron loads the built React files from the dist/ folder.
 const VITE_DEV_SERVER_URL = 'http://localhost:5173';
+
+// Detect whether we are in development (npm run electron:dev) or production.
+// The ELECTRON_ENV variable is set in the electron:dev npm script.
+const isDev = process.env.ELECTRON_ENV === 'development';
 
 function createWindow() {
   const win = new BrowserWindow({
@@ -26,7 +32,15 @@ function createWindow() {
     return { action: 'deny' };
   });
 
-  win.loadURL(VITE_DEV_SERVER_URL);
+  if (isDev) {
+    // Development: load from Vite dev server (proxy handles /api → Express)
+    win.loadURL(VITE_DEV_SERVER_URL);
+  } else {
+    // Production: load the built React app from the dist/ folder.
+    // base: './' in vite.config.js makes all asset paths relative,
+    // so file:// loading works correctly.
+    win.loadFile(path.join(__dirname, '..', 'dist', 'index.html'));
+  }
 }
 
 app.whenReady().then(() => {

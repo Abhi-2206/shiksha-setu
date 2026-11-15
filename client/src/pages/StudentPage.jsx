@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { apiBase } from '../api';
 import './StudentPage.css';
 
 // Initial state for new student form
@@ -115,7 +116,7 @@ function StudentPage() {
       }
 
       const queryString = params.toString();
-      const endpoint = `/api/students${queryString ? `?${queryString}` : ''}`;
+      const endpoint = `${apiBase}/api/students${queryString ? `?${queryString}` : ''}`;
 
       const response = await fetch(endpoint, {
         method: 'GET',
@@ -267,7 +268,7 @@ function StudentPage() {
         percentageOrCgpa: addFormData.percentageOrCgpa !== '' ? parseFloat(addFormData.percentageOrCgpa) : null,
       };
 
-      const response = await fetch('/api/students', {
+      const response = await fetch(`${apiBase}/api/students`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -437,7 +438,7 @@ function StudentPage() {
         percentageOrCgpa: editFormData.percentageOrCgpa !== '' ? parseFloat(editFormData.percentageOrCgpa) : null,
       };
 
-      const response = await fetch(`/api/students/${editingStudentId}`, {
+      const response = await fetch(`${apiBase}/api/students/${editingStudentId}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -517,7 +518,7 @@ function StudentPage() {
     }
 
     try {
-      const response = await fetch(`/api/students/${studentToDelete.id}`, {
+      const response = await fetch(`${apiBase}/api/students/${studentToDelete.id}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`,
