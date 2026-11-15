@@ -192,21 +192,126 @@ router.delete("/:id", authenticateToken, requireAdmin, async (req, res, next) =>
   }
 });
 
+function isStrictInteger(val) {
+  if (typeof val === "number") {
+    return Number.isInteger(val);
+  }
+  if (typeof val === "string") {
+    const trimmed = val.trim();
+    if (!trimmed) return false;
+    return /^\d+$/.test(trimmed);
+  }
+  return false;
+}
+
+function validateBranchInput(body) {
+  const errors = [];
+
+  if (!body || typeof body !== "object" || Array.isArray(body)) {
+    return ["Request body must be a JSON object"];
+  }
+
+  // 1. Name validation
+  if (body.name === undefined || body.name === null) {
+    errors.push("Branch name is required");
+  } else if (typeof body.name !== "string") {
+    errors.push("Branch name must be a string");
+  } else if (!body.name.trim()) {
+    errors.push("Branch name cannot be empty or whitespace-only");
+  } else if (body.name.trim().length < 2) {
+    errors.push("Branch name must be at least 2 characters long");
+  } else if (body.name.trim().length > 100) {
+    errors.push("Branch name cannot exceed 100 characters");
+  }
+
+  // 2. Code validation
+  if (body.code === undefined || body.code === null) {
+    errors.push("Branch code is required");
+  } else if (typeof body.code !== "string") {
+    errors.push("Branch code must be a string");
+  } else if (!body.code.trim()) {
+    errors.push("Branch code cannot be empty or whitespace-only");
+  } else if (body.code.trim().length < 2) {
+    errors.push("Branch code must be at least 2 characters long");
+  } else if (body.code.trim().length > 20) {
+    errors.push("Branch code cannot exceed 20 characters");
+  }
+
+  // 3. Optional durationYears validation
+  if (body.durationYears !== undefined && body.durationYears !== null) {
+    if (!isStrictInteger(body.durationYears)) {
+      errors.push("durationYears must be an integer between 1 and 6");
+    } else {
+      const val = typeof body.durationYears === "number" ? body.durationYears : parseInt(body.durationYears.trim(), 10);
+      if (val < 1 || val > 6) {
+        errors.push("durationYears must be an integer between 1 and 6");
+      }
+    }
+  }
+
+  // 4. Optional seats validation
+  if (body.seats !== undefined && body.seats !== null) {
+    if (!isStrictInteger(body.seats)) {
+      errors.push("seats must be a positive integer between 1 and 1000");
+    } else {
+      const val = typeof body.seats === "number" ? body.seats : parseInt(body.seats.trim(), 10);
+      if (val < 1 || val > 1000) {
+        errors.push("seats must be a positive integer between 1 and 1000");
+      }
+    }
+  }
+
+  return errors;
+}
+
 // -------------------------------------------------------------
 // 6. BRANCH ENDPOINTS (Admin Only creation/deletion)
 // -------------------------------------------------------------
 router.post("/:id/branches", authenticateToken, requireAdmin, async (req, res, next) => {
   try {
-    const collegeId = parseInt(req.params.id, 10);
-    const { name, code, durationYears = 3, seats = 60 } = req.body;
+    const rawId = req.params.id;
+    const collegeId = Number(rawId);
+    if (!Number.isSafeInteger(collegeId) || collegeId <= 0 || !/^\d+$/.test(String(rawId || "").trim())) {
+      return res.status(400).json({ success: false, message: "Invalid college ID" });
+    }
+
+    // Verify parent college exists
+    const college = await prisma.college.findUnique({
+      where: { id: collegeId },
+    });
+
+    if (!college) {
+      return res.status(404).json({
+        success: false,
+        message: "College not found",
+      });
+    }
+
+    // Validate request body
+    const validationErrors = validateBranchInput(req.body);
+    if (validationErrors.length > 0) {
+      return res.status(400).json({
+        success: false,
+        message: "Validation failed",
+        errors: validationErrors,
+      });
+    }
+
+    const { name, code, durationYears, seats } = req.body;
+    const finalDurationYears = durationYears !== undefined && durationYears !== null
+      ? (typeof durationYears === "number" ? durationYears : parseInt(durationYears.trim(), 10))
+      : 3;
+    const finalSeats = seats !== undefined && seats !== null
+      ? (typeof seats === "number" ? seats : parseInt(seats.trim(), 10))
+      : 60;
 
     const branch = await prisma.branch.create({
       data: {
         collegeId,
         name: name.trim(),
         code: code.trim().toUpperCase(),
-        durationYears: parseInt(durationYears, 10) || 3,
-        seats: parseInt(seats, 10) || 60,
+        durationYears: finalDurationYears,
+        seats: finalSeats,
       },
     });
 
