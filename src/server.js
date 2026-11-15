@@ -18,22 +18,80 @@ const app = express();
 // CORS Configuration
 // Supports Vite dev server, Electron desktop renderer, and production URL.
 // ============================================================================
-const ALLOWED_ORIGINS = new Set([
+const isProduction = process.env.NODE_ENV === "production";
+
+const DEV_ORIGINS = [
   "http://localhost:5173",
   "http://localhost:5174",
   "http://127.0.0.1:5173",
   "http://localhost:5001",
-  process.env.FRONTEND_URL,
-].filter(Boolean));
+];
+
+/**
+ * Normalizes a URL string to its origin using the standard URL API.
+ * Accepts only http: and https: protocols.
+ * Returns null if the URL is invalid, malformed, or uses another protocol.
+ */
+function normalizeOrigin(urlStr) {
+  if (!urlStr || typeof urlStr !== "string") return null;
+  const trimmed = urlStr.trim();
+  if (!trimmed) return null;
+  try {
+    const parsed = new URL(trimmed);
+    if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
+      return null;
+    }
+    if (parsed.origin && parsed.origin !== "null") {
+      return parsed.origin;
+    }
+  } catch {
+    // Malformed URL entry
+    return null;
+  }
+  return null;
+}
+
+/**
+ * Parses and normalizes FRONTEND_URL as a comma-separated list of origins.
+ * Ignores empty entries and warns about malformed values.
+ */
+function getConfiguredOrigins() {
+  const raw = process.env.FRONTEND_URL || "";
+  const entries = raw.split(",").map((entry) => entry.trim()).filter(Boolean);
+  const origins = [];
+
+  for (const entry of entries) {
+    const origin = normalizeOrigin(entry);
+    if (origin) {
+      origins.push(origin);
+    } else {
+      console.warn(`[CORS] Invalid origin in FRONTEND_URL ignored: "${entry}"`);
+    }
+  }
+
+  return origins;
+}
+
+const configuredOrigins = getConfiguredOrigins();
+
+const ALLOWED_ORIGINS = new Set(
+  isProduction ? configuredOrigins : [...DEV_ORIGINS, ...configuredOrigins]
+);
 
 app.use(
   cors({
     origin: function (origin, callback) {
-      // Electron production sends origin: 'null' (file:// protocol) or undefined for same-origin
-      if (!origin || origin === "null" || ALLOWED_ORIGINS.has(origin)) {
+      // Electron production sends origin: 'null' (file:// protocol) or undefined for same-origin / non-browser requests
+      if (!origin || origin === "null") {
         return callback(null, true);
       }
-      return callback(new Error(`CORS policy violation: Origin '${origin}' is not authorized.`));
+
+      const normalizedOrigin = normalizeOrigin(origin);
+      if (normalizedOrigin && ALLOWED_ORIGINS.has(normalizedOrigin)) {
+        return callback(null, true);
+      }
+
+      return callback(null, false);
     },
     credentials: true,
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
