@@ -260,6 +260,79 @@ describe("Backend API Integration Tests", () => {
       assert.strictEqual(data.success, false);
       assert.ok(data.errors.length >= 2);
     });
+
+    // ==========================================================================
+    // Student Directory & Admin Endpoints (Contribution 1)
+    // ==========================================================================
+    it("GET /api/students should reject unauthenticated request (401)", async () => {
+      const res = await fetch(`${baseUrl}/api/students`);
+      assert.strictEqual(res.status, 401);
+    });
+
+    it("GET /api/students should reject student request with 403", async () => {
+      const res = await fetch(`${baseUrl}/api/students`, {
+        headers: { Authorization: `Bearer ${studentToken}` },
+      });
+      assert.strictEqual(res.status, 403);
+      const data = await res.json();
+      assert.strictEqual(data.success, false);
+      assert.match(data.message, /Admin role required/i);
+    });
+
+    it("GET /api/students should allow admin to list students (200)", async () => {
+      const res = await fetch(`${baseUrl}/api/students`, {
+        headers: { Authorization: `Bearer ${adminToken}` },
+      });
+      assert.strictEqual(res.status, 200);
+      const data = await res.json();
+      assert.strictEqual(data.success, true);
+      assert.ok(Array.isArray(data.data));
+    });
+
+    it("GET /api/students/:id should reject unauthenticated request (401)", async () => {
+      const res = await fetch(`${baseUrl}/api/students/${studentUser.id}`);
+      assert.strictEqual(res.status, 401);
+    });
+
+    it("GET /api/students/:id should reject student request with 403", async () => {
+      const res = await fetch(`${baseUrl}/api/students/${studentUser.id}`, {
+        headers: { Authorization: `Bearer ${studentToken}` },
+      });
+      assert.strictEqual(res.status, 403);
+      const data = await res.json();
+      assert.strictEqual(data.success, false);
+      assert.match(data.message, /Admin role required/i);
+    });
+
+    it("GET /api/students/:id should allow admin to retrieve student by ID (200)", async () => {
+      const res = await fetch(`${baseUrl}/api/students/${studentUser.id}`, {
+        headers: { Authorization: `Bearer ${adminToken}` },
+      });
+      assert.strictEqual(res.status, 200);
+      const data = await res.json();
+      assert.strictEqual(data.success, true);
+      assert.strictEqual(data.student.id, studentUser.id);
+    });
+
+    it("GET /api/students/:id with non-numeric ID should return 400", async () => {
+      const res = await fetch(`${baseUrl}/api/students/not-a-number`, {
+        headers: { Authorization: `Bearer ${adminToken}` },
+      });
+      assert.strictEqual(res.status, 400);
+      const data = await res.json();
+      assert.strictEqual(data.success, false);
+      assert.strictEqual(data.message, "Invalid ID");
+    });
+
+    it("GET /api/students/:id with non-existent numeric ID should return 404", async () => {
+      const res = await fetch(`${baseUrl}/api/students/999999`, {
+        headers: { Authorization: `Bearer ${adminToken}` },
+      });
+      assert.strictEqual(res.status, 404);
+      const data = await res.json();
+      assert.strictEqual(data.success, false);
+      assert.strictEqual(data.message, "Student not found");
+    });
   });
 
   // ==========================================================================
