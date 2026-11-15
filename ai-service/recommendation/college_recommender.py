@@ -37,6 +37,30 @@ REQUIRED_FIELDS: Set[str] = {
     "source_year",
 }
 
+
+def get_cutoff_dataset_path(data_path: Optional[str | Path] = None) -> Path:
+    """
+    Resolves the cutoff dataset CSV file path.
+
+    Precedence:
+    1. Explicit `data_path` argument (if provided and non-empty).
+    2. `CUTOFF_DATASET_PATH` environment variable (if set and non-empty).
+    3. Default path: `ai-service/data/college_cutoffs.csv`.
+
+    Expands `~` (user home directory) and resolves relative paths relative
+    to the current working directory.
+    """
+    if data_path is not None:
+        p_str = str(data_path).strip()
+        if p_str:
+            return Path(p_str).expanduser().resolve()
+
+    env_path = os.getenv("CUTOFF_DATASET_PATH", "").strip()
+    if env_path:
+        return Path(env_path).expanduser().resolve()
+
+    return DEFAULT_DATASET_PATH.resolve()
+
 VALID_CATEGORIES: Set[str] = {
     "GEN",
     "GENERAL",
@@ -85,7 +109,7 @@ def load_and_validate_cutoffs(
     Loads and validates cutoff records from memory or a CSV file.
 
     Args:
-        data_path: Optional path to CSV file. Defaults to ai-service/data/college_cutoffs.csv.
+        data_path: Optional path to CSV file. Defaults to CUTOFF_DATASET_PATH or ai-service/data/college_cutoffs.csv.
         records: Optional in-memory list of raw dictionaries (bypasses CSV disk read).
         strict: If True, raises ValueError on invalid cutoff numbers. If False, skips bad rows.
 
@@ -103,7 +127,7 @@ def load_and_validate_cutoffs(
             raise TypeError(f"records must be a list of dictionaries, got: {type(records).__name__}")
         raw_data = records
     else:
-        path = Path(data_path) if data_path else DEFAULT_DATASET_PATH
+        path = get_cutoff_dataset_path(data_path)
         if not path.exists():
             raise FileNotFoundError(f"Cutoff dataset not found at '{path}'.")
 
