@@ -101,14 +101,82 @@
   color: #FFFFFF;
 }
 
+/* User Profile Badge */
+.user-profile-badge {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 4px 8px;
+  background-color: #F7F7F7;
+  border: 1px solid #E2E2E2;
+  border-radius: 6px;
+}
+
+.role-tag {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 4px;
+  letter-spacing: 0.5px;
+}
+
+.admin-tag {
+  background-color: #252525;
+  color: #D4AF37;
+}
+
+.student-tag {
+  background-color: rgba(212, 175, 55, 0.2);
+  color: #8c7322;
+}
+
+.user-display-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: #252525;
+  max-width: 130px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.logout-btn {
+  background: none;
+  border: 1px solid #E2E2E2;
+  color: #666666;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.logout-btn:hover {
+  background-color: #FFEBEE;
+  color: #D32F2F;
+  border-color: #FFCDD2;
+}
+
+.navbar-mobile-toggle {
+  display: none;
+  background: none;
+  border: 1px solid #E2E2E2;
+  border-radius: 4px;
+  font-size: 18px;
+  padding: 6px 10px;
+  cursor: pointer;
+  color: #252525;
+}
+
 /* Mobile responsive menu */
-@media (max-width: 900px) {
-  .navbar-container {
-    flex-wrap: wrap;
-    padding: 12px 16px;
+@media (max-width: 960px) {
+  .navbar-mobile-toggle {
+    display: block;
   }
 
   .navbar-links {
+    display: none;
     order: 3;
     width: 100%;
     flex-direction: column;
@@ -116,6 +184,15 @@
     gap: 4px;
     padding-top: 10px;
     border-top: 1px solid #E2E2E2;
+  }
+
+  .navbar-links.mobile-open {
+    display: flex;
+  }
+
+  .navbar-container {
+    flex-wrap: wrap;
+    padding: 12px 16px;
   }
 
   .nav-item a {
