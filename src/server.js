@@ -155,7 +155,7 @@ function validateEnvironment() {
       console.warn("[Production Warning] FRONTEND_URL is not set. Cross-origin web clients may be blocked by CORS.");
     }
     if (!process.env.AI_SERVICE_URL || !process.env.AI_SERVICE_URL.trim()) {
-      console.warn("[Production Warning] AI_SERVICE_URL is not set and will default to http://localhost:8000.");
+      console.warn("[Production Warning] AI_SERVICE_URL is not set. AI features (chat, recommendations, predictions) will return 503 until the deployed AI service URL is configured.");
     }
   }
 }

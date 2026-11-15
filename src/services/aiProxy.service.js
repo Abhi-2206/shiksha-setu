@@ -2,14 +2,26 @@
  * Service for communicating server-side with the Python FastAPI AI Service.
  * Protects upstream secrets, validates payloads, enforces request timeouts,
  * and standardizes error responses.
+ *
+ * In production, AI_SERVICE_URL must be explicitly configured.
+ * In development, it defaults to http://localhost:8000.
  */
 
-const DEFAULT_AI_SERVICE_URL = process.env.AI_SERVICE_URL || "http://localhost:8000";
+const isProduction = process.env.NODE_ENV === "production";
+
+const DEFAULT_AI_SERVICE_URL = (() => {
+  const configured = process.env.AI_SERVICE_URL?.trim();
+  if (configured) return configured;
+  if (isProduction) return null;
+  return "http://localhost:8000";
+})();
+
 const DEFAULT_TIMEOUT_MS = 15000;
 
 class AIProxyService {
   constructor(baseUrl = DEFAULT_AI_SERVICE_URL, timeoutMs = DEFAULT_TIMEOUT_MS) {
-    this.baseUrl = baseUrl.replace(/\/$/, "");
+    const trimmed = typeof baseUrl === "string" ? baseUrl.trim() : null;
+    this.baseUrl = trimmed ? trimmed.replace(/\/+$/, "") : null;
     this.timeoutMs = timeoutMs;
   }
 
@@ -17,6 +29,14 @@ class AIProxyService {
    * Helper to perform timeout-guarded HTTP fetch to the AI service
    */
   async _postToAI(endpoint, payload) {
+    if (!this.baseUrl) {
+      const error = new Error(
+        "AI service is not configured. Set the AI_SERVICE_URL environment variable to the deployed AI service URL."
+      );
+      error.statusCode = 503;
+      throw error;
+    }
+
     const url = `${this.baseUrl}${endpoint}`;
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), this.timeoutMs);
