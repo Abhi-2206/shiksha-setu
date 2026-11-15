@@ -94,6 +94,7 @@
   border-radius: 4px;
   cursor: pointer;
   transition: background-color 0.2s, color 0.2s;
+  text-decoration: none;
 }
 
 .login-btn:hover {
@@ -101,72 +102,83 @@
   color: #FFFFFF;
 }
 
-/* User Profile Badge */
-.user-profile-badge {
+/* Logged-in User Menu */
+.navbar-user-menu {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 4px 8px;
-  background-color: #F7F7F7;
+  gap: 12px;
+}
+
+.navbar-user-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 10px 4px 4px;
+  background-color: #F8F9FA;
   border: 1px solid #E2E2E2;
-  border-radius: 6px;
+  border-radius: 20px;
 }
 
-.role-tag {
-  font-size: 10px;
-  font-weight: 700;
-  padding: 2px 6px;
-  border-radius: 4px;
-  letter-spacing: 0.5px;
-}
-
-.admin-tag {
-  background-color: #252525;
-  color: #D4AF37;
-}
-
-.student-tag {
-  background-color: rgba(212, 175, 55, 0.2);
-  color: #8c7322;
-}
-
-.user-display-name {
+.navbar-user-avatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background-color: #1A365D;
+  color: #FFFFFF;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   font-size: 13px;
+  font-weight: 700;
+}
+
+.navbar-user-text {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.2;
+}
+
+.navbar-user-name {
+  font-size: 12px;
   font-weight: 600;
   color: #252525;
-  max-width: 130px;
+  max-width: 120px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
-.logout-btn {
-  background: none;
-  border: 1px solid #E2E2E2;
-  color: #666666;
-  font-size: 12px;
+.navbar-user-role {
+  font-size: 9px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.role-admin {
+  color: #C53030;
+}
+
+.role-student {
+  color: #2B6CB0;
+}
+
+.navbar-logout-btn {
+  padding: 6px 14px;
+  font-size: 13px;
   font-weight: 600;
-  padding: 4px 10px;
+  color: #555555;
+  background-color: #FFFFFF;
+  border: 1px solid #CBD5E0;
   border-radius: 4px;
   cursor: pointer;
   transition: all 0.2s ease;
 }
 
-.logout-btn:hover {
-  background-color: #FFEBEE;
-  color: #D32F2F;
-  border-color: #FFCDD2;
-}
-
-.navbar-mobile-toggle {
-  display: none;
-  background: none;
-  border: 1px solid #E2E2E2;
-  border-radius: 4px;
-  font-size: 18px;
-  padding: 6px 10px;
-  cursor: pointer;
-  color: #252525;
+.navbar-logout-btn:hover {
+  color: #C53030;
+  border-color: #FEB2B2;
+  background-color: #FFF5F5;
 }
 
 /* Mobile responsive menu */
@@ -197,5 +209,9 @@
 
   .nav-item a {
     padding: 10px 12px;
+  }
+
+  .navbar-user-menu {
+    gap: 8px;
   }
 }

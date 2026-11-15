@@ -1,20 +1,16 @@
-import { useState } from 'react';
 import { NavLink, Link, useNavigate } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../context/useAuth';
 import './Navbar.css';
 
 // Reusable Navbar component for ShikshaSetu with Role-Based Navigation
 function Navbar() {
-  const { user, isAuthenticated, isAdmin, logout } = useAuth();
+  const { user, isAuthenticated, logout } = useAuth();
   const navigate = useNavigate();
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
-  const handleLogout = () => {
-    logout();
-    navigate('/');
+  const handleLogout = async () => {
+    await logout();
+    navigate('/login');
   };
-
-  const closeMobile = () => setMobileMenuOpen(false);
 
   return (
     <nav className="navbar">
@@ -188,28 +184,33 @@ function Navbar() {
           )}
         </ul>
 
-        {/* Right: Authentication Actions */}
+        {/* Right: Authentication Action */}
         <div className="navbar-actions">
-          {isAuthenticated ? (
-            <div className="user-profile-badge">
-              <span className={`role-tag ${isAdmin ? 'admin-tag' : 'student-tag'}`}>
-                {isAdmin ? 'ADMIN' : 'STUDENT'}
-              </span>
-              <span className="user-display-name">
-                {user?.name || user?.email?.split('@')[0]}
-              </span>
-              <button 
-                type="button" 
-                onClick={handleLogout} 
-                className="logout-btn"
-                title="Sign out of ShikshaSetu"
+          {isAuthenticated && user ? (
+            <div className="navbar-user-menu">
+              <div className="navbar-user-info" title={`Signed in as ${user.email} (${user.role})`}>
+                <span className="navbar-user-avatar">
+                  {user.name ? user.name.charAt(0).toUpperCase() : 'U'}
+                </span>
+                <div className="navbar-user-text">
+                  <span className="navbar-user-name">{user.name}</span>
+                  <span className={`navbar-user-role ${user.role === 'ADMIN' ? 'role-admin' : 'role-student'}`}>
+                    {user.role}
+                  </span>
+                </div>
+              </div>
+              <button
+                type="button"
+                className="navbar-logout-btn"
+                onClick={handleLogout}
+                title="Log out of your account"
               >
                 Logout
               </button>
             </div>
           ) : (
-            <Link to="/login" className="login-btn" onClick={closeMobile}>
-              Login / Register
+            <Link to="/login" className="login-btn">
+              Login
             </Link>
           )}
         </div>

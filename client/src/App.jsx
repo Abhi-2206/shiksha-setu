@@ -1,31 +1,19 @@
 import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
-import { ProtectedRoute, AdminRoute } from './components/ProtectedRoute';
 import Navbar from './components/Navbar';
-
-// Teammate pages preserved
+import ProtectedRoute from './components/ProtectedRoute';
 import HomePage from './pages/HomePage';
 import StudentPage from './pages/StudentPage';
-
-// Task 3 pages
-import LoginPage from './pages/LoginPage';
-import StudentDashboard from './pages/StudentDashboard';
+import AuthPage from './pages/AuthPage';
 import ChatbotPage from './pages/ChatbotPage';
-import RecommendationsPage from './pages/RecommendationsPage';
-import CutoffPredictorPage from './pages/CutoffPredictorPage';
-import ProfilePage from './pages/ProfilePage';
-import CollegesPage from './pages/CollegesPage';
-import AdminDashboard from './pages/AdminDashboard';
-
 import './App.css';
 
 function App() {
   return (
-    <AuthProvider>
-      <HashRouter>
+    <HashRouter>
+      <AuthProvider>
         <div className="app-container">
-          
-          {/* Reusable Common Navbar with Role-Based Navigation */}
+          {/* Reusable Common Navbar with Auth State */}
           <Navbar />
 
           {/* Page Content based on current route */}
@@ -33,58 +21,47 @@ function App() {
             <Routes>
               {/* Public Routes */}
               <Route path="/" element={<HomePage />} />
-              <Route path="/login" element={<LoginPage />} />
-              <Route path="/colleges" element={<CollegesPage />} />
-              <Route path="/cutoffs" element={<CutoffPredictorPage />} />
+              <Route path="/login" element={<AuthPage key="login" initialMode="login" />} />
+              <Route path="/register" element={<AuthPage key="register" initialMode="register" />} />
               <Route path="/chatbot" element={<ChatbotPage />} />
 
-              {/* Student Protected Routes */}
-              <Route
-                path="/dashboard"
+              {/* Protected Routes — Student Management requires Administrator authorization */}
+              <Route 
+                path="/students" 
                 element={
-                  <ProtectedRoute>
-                    <StudentDashboard />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/recommendations"
-                element={<RecommendationsPage />}
-              />
-              <Route
-                path="/profile"
-                element={
-                  <ProtectedRoute>
-                    <ProfilePage />
-                  </ProtectedRoute>
-                }
-              />
-
-              {/* Administrator Protected Routes */}
-              <Route
-                path="/admin"
-                element={
-                  <AdminRoute>
-                    <AdminDashboard />
-                  </AdminRoute>
-                }
-              />
-              <Route
-                path="/students"
-                element={
-                  <AdminRoute>
+                  <ProtectedRoute requiredRole="ADMIN">
                     <StudentPage />
-                  </AdminRoute>
-                }
+                  </ProtectedRoute>
+                } 
               />
 
-              {/* Fallback route */}
+              {/* Public Informational Placeholders */}
+              <Route 
+                path="/colleges" 
+                element={
+                  <div className="page-placeholder">
+                    <h1>Colleges & Branches</h1>
+                    <p>Explore polytechnic institutions and diploma streams across Rajasthan.</p>
+                  </div>
+                } 
+              />
+              <Route 
+                path="/cutoffs" 
+                element={
+                  <div className="page-placeholder">
+                    <h1>Admission Cutoff</h1>
+                    <p>View historical cutoff marks and counseling ranks for Rajasthan colleges.</p>
+                  </div>
+                } 
+              />
+
+              {/* Catch-all redirect to Home */}
               <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
           </main>
         </div>
-      </HashRouter>
-    </AuthProvider>
+      </AuthProvider>
+    </HashRouter>
   );
 }
 

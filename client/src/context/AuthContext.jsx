@@ -1,127 +1,179 @@
-import { createContext, useContext, useState, useEffect, useCallback } from 'react';
-import {
-  authApi,
-  getStoredToken,
-  getStoredUser,
-  setStoredAuth,
-  clearStoredAuth,
-} from '../api';
+import { useState, useEffect } from 'react';
+import { AuthContext } from './authContextInstance';
+import { apiBase } from '../api';
 
-export const AuthContext = createContext(null);
+const getStoredToken = () => {
+  return localStorage.getItem('token') || sessionStorage.getItem('token');
+};
+
+const getStoredUser = () => {
+  const raw = localStorage.getItem('user') || sessionStorage.getItem('user');
+  if (!raw) return null;
+  try {
+    return JSON.parse(raw);
+  } catch {
+    return null;
+  }
+};
+
+const clearStorage = () => {
+  localStorage.removeItem('token');
+  localStorage.removeItem('user');
+  sessionStorage.removeItem('token');
+  sessionStorage.removeItem('user');
+};
 
 export function AuthProvider({ children }) {
   const [token, setToken] = useState(() => getStoredToken());
   const [user, setUser] = useState(() => getStoredUser());
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(() => Boolean(getStoredToken()));
 
-  // Synchronize and verify current user on mount if token exists
   useEffect(() => {
     let isMounted = true;
+    const storedToken = getStoredToken();
 
-    async function verifySession() {
-      const storedToken = getStoredToken();
-      if (!storedToken) {
-        if (isMounted) setLoading(false);
-        return;
-      }
-
-      try {
-        const res = await authApi.getCurrentUser();
-        if (isMounted && res.success && res.user) {
-          setUser(res.user);
-          // Update cached user
-          const isRemembered = Boolean(localStorage.getItem('token'));
-          setStoredAuth(storedToken, res.user, isRemembered);
-        }
-      } catch (err) {
-        // If token is invalid or expired, clear session
-        if (err.status === 401 && isMounted) {
-          clearStoredAuth();
-          setToken(null);
-          setUser(null);
-        }
-      } finally {
-        if (isMounted) setLoading(false);
-      }
+    if (!storedToken) {
+      return;
     }
 
-    verifySession();
+    fetch(`${apiBase}/api/auth/me`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${storedToken}`,
+      },
+    })
+      .then((res) => res.json().catch(() => ({})))
+      .then((data) => {
+        if (!isMounted) return;
+        if (data && data.success && data.user) {
+          setUser(data.user);
+          if (localStorage.getItem('token')) {
+            localStorage.setItem('user', JSON.stringify(data.user));
+          } else {
+            sessionStorage.setItem('user', JSON.stringify(data.user));
+          }
+        } else {
+          clearStorage();
+          setUser(null);
+          setToken(null);
+        }
+      })
+      .catch((err) => {
+        console.warn('Authentication token verification failed:', err.message);
+      })
+      .finally(() => {
+        if (isMounted) {
+          setLoading(false);
+        }
+      });
 
-    // Listen for custom 401 session expiry event
-    const handleExpired = () => {
-      clearStoredAuth();
-      setToken(null);
-      setUser(null);
-    };
-
-    window.addEventListener('auth:expired', handleExpired);
     return () => {
       isMounted = false;
-      window.removeEventListener('auth:expired', handleExpired);
     };
   }, []);
 
-  const login = useCallback(async ({ email, password, remember = true }) => {
-    const res = await authApi.login({ email, password });
-    if (res.success && res.token && res.user) {
-      setToken(res.token);
-      setUser(res.user);
-      setStoredAuth(res.token, res.user, remember);
-      return res;
+  /**
+   * Log in user with email and password
+   * @param {string} email
+   * @param {string} password
+   * @param {boolean} rememberMe - Persist in localStorage (true) or sessionStorage (false)
+   */
+  const login = async (email, password, rememberMe = true) => {
+    const response = await fetch(`${apiBase}/api/auth/login`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ email: email.trim(), password }),
+    });
+
+    const data = await response.json().catch(() => ({}));
+
+    if (!response.ok || !data.success) {
+      const errorMsg = data.message || `Login failed (Status: ${response.status})`;
+      throw new Error(errorMsg);
     }
-    throw new Error(res.message || 'Login failed');
-  }, []);
 
-  const register = useCallback(async ({ name, email, password, role = 'STUDENT', remember = true }) => {
-    const res = await authApi.register({ name, email, password, role });
-    if (res.success && res.token && res.user) {
-      setToken(res.token);
-      setUser(res.user);
-      setStoredAuth(res.token, res.user, remember);
-      return res;
+    const { token: receivedToken, user: receivedUser } = data;
+
+    clearStorage();
+
+    if (rememberMe) {
+      localStorage.setItem('token', receivedToken);
+      localStorage.setItem('user', JSON.stringify(receivedUser));
+    } else {
+      sessionStorage.setItem('token', receivedToken);
+      sessionStorage.setItem('user', JSON.stringify(receivedUser));
     }
-    throw new Error(res.message || 'Registration failed');
-  }, []);
 
-  const logout = useCallback(() => {
-    clearStoredAuth();
-    setToken(null);
-    setUser(null);
-  }, []);
+    setToken(receivedToken);
+    setUser(receivedUser);
 
-  const refreshUser = useCallback(async () => {
+    return receivedUser;
+  };
+
+  /**
+   * Register a new student account
+   * @param {string} name
+   * @param {string} email
+   * @param {string} password
+   */
+  const signup = async (name, email, password) => {
+    const response = await fetch(`${apiBase}/api/auth/signup`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        name: name.trim(),
+        email: email.trim(),
+        password,
+      }),
+    });
+
+    const data = await response.json().catch(() => ({}));
+
+    if (!response.ok || !data.success) {
+      const errorMsg = data.message || `Registration failed (Status: ${response.status})`;
+      throw new Error(errorMsg);
+    }
+
+    return data;
+  };
+
+  /**
+   * Log out the current user
+   */
+  const logout = async () => {
+    const storedToken = getStoredToken();
     try {
-      const res = await authApi.getCurrentUser();
-      if (res.success && res.user) {
-        setUser(res.user);
-        const isRemembered = Boolean(localStorage.getItem('token'));
-        setStoredAuth(token, res.user, isRemembered);
+      if (storedToken) {
+        await fetch(`${apiBase}/api/auth/logout`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${storedToken}`,
+          },
+        }).catch(() => {});
       }
-    } catch (_err) {
-      // Ignored
+    } finally {
+      clearStorage();
+      setUser(null);
+      setToken(null);
     }
-  }, [token]);
+  };
 
   const value = {
-    token,
     user,
+    token,
     loading,
-    isAuthenticated: Boolean(token && user),
-    isAdmin: user?.role === 'ADMIN' || user?.role === 'admin',
-    isStudent: user?.role === 'STUDENT' || user?.role === 'student' || (!user?.role && Boolean(user)),
+    isAuthenticated: Boolean(user && token),
+    isAdmin: user?.role === 'ADMIN',
     login,
-    register,
+    signup,
     logout,
-    refreshUser,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
-}
-
-export function useAuth() {
-  const context = useContext(AuthContext);
-  if (!context) {
-    throw new Error('useAuth must be used within an AuthProvider');
-  }
-  return context;
 }
