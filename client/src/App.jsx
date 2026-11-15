@@ -6,6 +6,7 @@ import HomePage from './pages/HomePage';
 import StudentPage from './pages/StudentPage';
 import AuthPage from './pages/AuthPage';
 import ChatbotPage from './pages/ChatbotPage';
+import CutoffPredictorPage from './pages/CutoffPredictorPage';
 import './App.css';
 
 function App() {
@@ -45,15 +46,7 @@ function App() {
                   </div>
                 } 
               />
-              <Route 
-                path="/cutoffs" 
-                element={
-                  <div className="page-placeholder">
-                    <h1>Admission Cutoff</h1>
-                    <p>View historical cutoff marks and counseling ranks for Rajasthan colleges.</p>
-                  </div>
-                } 
-              />
+              <Route path="/cutoffs" element={<CutoffPredictorPage />} />
 
               {/* Catch-all redirect to Home */}
               <Route path="*" element={<Navigate to="/" replace />} />
