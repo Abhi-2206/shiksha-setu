@@ -8,6 +8,7 @@
 
 [build.environment]
   NODE_VERSION = "20"
+  NETLIFY = "true"
 
 # Single Page Application (SPA) redirect rule
 [[redirects]]
