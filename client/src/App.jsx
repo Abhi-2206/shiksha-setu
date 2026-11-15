@@ -5,6 +5,7 @@ import ProtectedRoute from './components/ProtectedRoute';
 import HomePage from './pages/HomePage';
 import StudentPage from './pages/StudentPage';
 import AuthPage from './pages/AuthPage';
+import ChatbotPage from './pages/ChatbotPage';
 import './App.css';
 
 function App() {
@@ -22,6 +23,7 @@ function App() {
               <Route path="/" element={<HomePage />} />
               <Route path="/login" element={<AuthPage key="login" initialMode="login" />} />
               <Route path="/register" element={<AuthPage key="register" initialMode="register" />} />
+              <Route path="/chatbot" element={<ChatbotPage />} />
 
               {/* Protected Routes — Student Management requires Administrator authorization */}
               <Route 
@@ -40,15 +42,6 @@ function App() {
                   <div className="page-placeholder">
                     <h1>Colleges & Branches</h1>
                     <p>Explore polytechnic institutions and diploma streams across Rajasthan.</p>
-                  </div>
-                } 
-              />
-              <Route 
-                path="/chatbot" 
-                element={
-                  <div className="page-placeholder">
-                    <h1>AI Chatbot</h1>
-                    <p>AI-Powered student assistance chatbot interface.</p>
                   </div>
                 } 
               />
