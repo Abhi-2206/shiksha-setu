@@ -2,47 +2,44 @@
 require("dotenv").config();
 
 const express = require("express");
+const cors = require("cors");
+
 const authRoutes = require("./routes/auth.routes");
 const studentRoutes = require("./routes/student.routes");
+const chatRoutes = require("./routes/chat.routes");
+const aiRoutes = require("./routes/ai.routes");
 const collegeRoutes = require("./routes/college.routes");
 const cutoffRoutes = require("./routes/cutoff.routes");
+const errorHandler = require("./middleware/errorHandler.middleware");
 
 const app = express();
 
-// ---------------------------------------------------------------------------
-// CORS — allow requests from the Vite dev server and the Electron renderer.
-// In production Electron the renderer origin is 'null' (file:// protocol) or
-// 'http://localhost:5173'. We only permit localhost origins; never wildcard.
-// ---------------------------------------------------------------------------
+// ============================================================================
+// CORS Configuration
+// Supports Vite dev server, Electron desktop renderer, and production URL.
+// ============================================================================
 const ALLOWED_ORIGINS = new Set([
-  'http://localhost:5173', // Vite dev server
-  'http://localhost:5174', // Vite fallback port
-  'http://localhost:5001', // Self (health check / same-origin)
-]);
+  "http://localhost:5173",
+  "http://localhost:5174",
+  "http://127.0.0.1:5173",
+  "http://localhost:5001",
+  process.env.FRONTEND_URL,
+].filter(Boolean));
 
-app.use((req, res, next) => {
-  const origin = req.headers.origin;
-
-  // Electron production sends origin: 'null' (file:// protocol).
-  // Requests without an Origin header are same-origin or server-to-server — allow them.
-  if (!origin || origin === 'null') {
-    res.setHeader('Access-Control-Allow-Origin', '*');
-  } else if (ALLOWED_ORIGINS.has(origin)) {
-    res.setHeader('Access-Control-Allow-Origin', origin);
-    res.setHeader('Vary', 'Origin');
-  }
-
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-  res.setHeader('Access-Control-Allow-Credentials', 'true');
-
-  // Handle preflight OPTIONS requests
-  if (req.method === 'OPTIONS') {
-    return res.sendStatus(204);
-  }
-
-  next();
-});
+app.use(
+  cors({
+    origin: function (origin, callback) {
+      // Electron production sends origin: 'null' (file:// protocol) or undefined for same-origin
+      if (!origin || origin === "null" || ALLOWED_ORIGINS.has(origin)) {
+        return callback(null, true);
+      }
+      return callback(new Error(`CORS policy violation: Origin '${origin}' is not authorized.`));
+    },
+    credentials: true,
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
+  })
+);
 
 // Middleware to parse incoming JSON request bodies
 app.use(express.json());
@@ -52,20 +49,23 @@ app.get("/api/health", (req, res) => {
   res.json({
     success: true,
     message: "Backend is running successfully",
+    timestamp: new Date().toISOString(),
   });
 });
 
-// Register authentication routes under /api/auth prefix
+// ============================================================================
+// API Route Registrations
+// ============================================================================
 app.use("/api/auth", authRoutes);
-
-// Register student profile routes under /api/students prefix
-app.use("/api/students", studentRoutes);
-
-// Register college & branch routes under /api/colleges prefix
+app.use("/api/student", studentRoutes);
+app.use("/api/students", studentRoutes); // Supports both singular and plural conventions
+app.use("/api/chat", chatRoutes);
+app.use("/api/ai", aiRoutes);
 app.use("/api/colleges", collegeRoutes);
-
-// Register admission cutoff routes under /api/cutoffs prefix
 app.use("/api/cutoffs", cutoffRoutes);
+
+// Centralized error handler
+app.use(errorHandler);
 
 // Define server port from environment variables or default to 5001
 const PORT = process.env.PORT || 5001;
@@ -73,7 +73,7 @@ const PORT = process.env.PORT || 5001;
 // Start Express server only when running this file directly
 if (require.main === module) {
   app.listen(PORT, () => {
-    console.log(`Server is running on port ${PORT}`);
+    console.log(`Shiksha Setu Backend Server is running on port ${PORT}`);
   });
 }
 
