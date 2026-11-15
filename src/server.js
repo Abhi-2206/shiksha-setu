@@ -72,8 +72,19 @@ const PORT = process.env.PORT || 5001;
 
 // Start Express server only when running this file directly
 if (require.main === module) {
-  app.listen(PORT, () => {
+  const server = app.listen(PORT, () => {
     console.log(`Shiksha Setu Backend Server is running on port ${PORT}`);
+  });
+
+  server.on("error", (err) => {
+    if (err.code === "EADDRINUSE") {
+      console.error(`\n[Server Error] Port ${PORT} is already in use.`);
+      console.error(`To free port ${PORT}, run: lsof -ti:${PORT} | xargs kill -9\n`);
+      process.exit(1);
+    } else {
+      console.error("\n[Server Error] Failed to start server:", err.message);
+      process.exit(1);
+    }
   });
 }
 
