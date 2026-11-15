@@ -108,21 +108,41 @@ GEMINI_EMBEDDING_MODEL=gemini-embedding-001
 
 ## 4. Running the Service
 
-All commands are run from the **repository root** (`shiksha-setu/`), not from inside `ai-service/`.
+The AI service supports dynamic port binding and can be run directly with Python or via Uvicorn.
 
-### Development mode (with auto-reload)
+### Environment Variables for Server Networking
+- `PORT`: Server listening port. Defaults to `8000` if unset, empty, or whitespace-only. Must be an integer between `1` and `65535` (invalid non-empty values cause a fatal startup error). Cloud platforms (Render, Railway, Heroku, Cloud Run) supply this variable automatically.
+- `HOST`: Server interface binding. Defaults to `0.0.0.0` (all interfaces, required for containers). Can be overridden via the `HOST` environment variable. Empty values fall back to `0.0.0.0`.
 
+### Direct Python Startup (Recommended for Cloud Deployments)
+The direct Python entry point automatically reads `PORT` and `HOST` from the environment without relying on shell parameter expansion:
+
+**From repository root:**
+```bash
+python3 ai-service/api/main.py
+```
+
+**From inside `ai-service/`:**
+```bash
+python3 api/main.py
+```
+
+### Uvicorn CLI Startup
+You can also launch via Uvicorn CLI. In production or container environments, ensure the host binds to `0.0.0.0` (not `127.0.0.1`):
+
+**Development mode (with auto-reload, from repository root):**
 ```bash
 ./ai-service/.venv/bin/uvicorn api.main:app --host 0.0.0.0 --port 8000 --reload --app-dir ai-service
 ```
 
-### Without auto-reload (more stable for testing)
-
+**Production / dynamic port (where shell parameter expansion is supported):**
 ```bash
-./ai-service/.venv/bin/uvicorn api.main:app --host 127.0.0.1 --port 8000 --app-dir ai-service
+uvicorn api.main:app --host 0.0.0.0 --port ${PORT:-8000} --app-dir ai-service
 ```
+> [!NOTE]
+> Shell parameter expansion (`${PORT:-8000}`) requires an active shell environment and is not evaluated by all hosting provider dashboards or bare Docker entrypoints. For maximum platform compatibility, use the direct Python startup command (`python3 ai-service/api/main.py` or `python3 api/main.py`), which reads and validates `PORT` itself.
 
-The service starts at `http://localhost:8000`.
+The service starts by default at `http://localhost:8000` (or `http://localhost:<PORT>` if configured).
 
 | URL | Description |
 |---|---|

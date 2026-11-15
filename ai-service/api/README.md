@@ -16,10 +16,30 @@ Interactive OpenAPI / Swagger documentation is available at `/docs` (and ReDoc a
 
 ## Starting the Service
 
-From the project root:
-```bash
-./ai-service/.venv/bin/uvicorn api.main:app --host 0.0.0.0 --port 8000 --reload --app-dir ai-service
-```
+The API server supports dynamic port binding via the `PORT` environment variable (default: `8000`) and binds to `0.0.0.0` by default (configurable via `HOST`).
+
+### Direct Python Startup (Recommended for Cloud Deployments)
+The application provides an entry point that parses and validates `PORT` directly:
+
+- **From repository root:**
+  ```bash
+  python3 ai-service/api/main.py
+  ```
+- **From inside `ai-service/`:**
+  ```bash
+  python3 api/main.py
+  ```
+
+### Uvicorn CLI Startup
+- **Development with auto-reload (from project root):**
+  ```bash
+  ./ai-service/.venv/bin/uvicorn api.main:app --host 0.0.0.0 --port 8000 --reload --app-dir ai-service
+  ```
+- **Dynamic port via shell expansion (where supported):**
+  ```bash
+  uvicorn api.main:app --host 0.0.0.0 --port ${PORT:-8000} --app-dir ai-service
+  ```
+  *(Note: Cloud dashboards that do not execute inside a shell cannot evaluate `${PORT:-8000}`. Use the direct Python startup command instead).*
 
 ---
 
