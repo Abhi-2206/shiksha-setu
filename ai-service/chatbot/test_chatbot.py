@@ -331,7 +331,7 @@ class TestErrorHandling:
         assert response["error_type"] == "malformed_context"
 
     def test_missing_api_key(self):
-        """When GEMINI_API_KEY is missing, return missing_api_key error."""
+        """When GEMINI_API_KEY is missing at generation stage, return missing_api_key error."""
         mock_retriever = MagicMock(return_value=make_sample_chunks())
         with patch.dict(os.environ, {"GEMINI_API_KEY": ""}, clear=False):
             response = ask_chatbot(
@@ -342,6 +342,54 @@ class TestErrorHandling:
             )
             assert response["success"] is False
             assert response["error_type"] == "missing_api_key"
+
+    def test_missing_api_key_during_retrieval(self):
+        """When GEMINI_API_KEY is missing during retrieval, return missing_api_key (not retrieval_validation_error)."""
+        from embeddings.embedding_generator import get_gemini_client as emb_get_client
+
+        def mock_retriever_missing_key(question, **kwargs):
+            # Calls embedding_generator.get_gemini_client which raises MissingAPIKeyError
+            emb_get_client(api_key="")
+
+        with patch.dict(os.environ, {"GEMINI_API_KEY": ""}, clear=False):
+            response = ask_chatbot(
+                question="What is the fee?",
+                api_key="",
+                client=None,
+                retriever_func=mock_retriever_missing_key,
+            )
+            assert response["success"] is False
+            assert response["error_type"] == "missing_api_key"
+            assert "GEMINI_API_KEY is not configured" in response["message"]
+
+    def test_genuine_retrieval_validation_error_preserved(self):
+        """A genuine client ValueError during retrieval must remain retrieval_validation_error."""
+        mock_retriever = MagicMock(side_effect=ValueError("Invalid query parameter"))
+        response = ask_chatbot(
+            question="What is the fee?",
+            retriever_func=mock_retriever,
+        )
+        assert response["success"] is False
+        assert response["error_type"] == "retrieval_validation_error"
+        assert "Invalid query parameter" in response["message"]
+
+    def test_shared_exception_identity(self):
+        """Ensure embedding_generator raises the exact same shared MissingAPIKeyError class handled by generator."""
+        from chatbot.generator import MissingAPIKeyError as GenMissing
+        from embeddings.embedding_generator import (
+            MissingAPIKeyError as EmbMissing,
+            get_gemini_client as emb_get_client,
+        )
+        from exceptions import MissingAPIKeyError as SharedMissing
+
+        assert GenMissing is SharedMissing
+        assert EmbMissing is SharedMissing
+        assert issubclass(SharedMissing, ValueError)
+
+        with patch.dict(os.environ, {"GEMINI_API_KEY": ""}, clear=False):
+            with pytest.raises(SharedMissing) as exc_info:
+                emb_get_client(api_key="")
+            assert isinstance(exc_info.value, GenMissing)
 
     def test_gemini_api_failure(self):
         """When Gemini API call fails with APIError, return api_error."""

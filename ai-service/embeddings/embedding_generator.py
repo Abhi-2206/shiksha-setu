@@ -24,6 +24,8 @@ from google import genai
 from google.genai import types
 from google.genai.errors import APIError
 
+from exceptions import MissingAPIKeyError
+
 # Load environment variables relative to project location
 _AI_ENV_PATH = _AI_SERVICE_DIR / ".env"
 _ROOT_ENV_PATH = _PROJECT_ROOT / ".env"
@@ -58,7 +60,7 @@ class EmbeddingGenerationError(Exception):
 def get_gemini_client(api_key: Optional[str] = None) -> genai.Client:
     """
     Initializes and returns a Google GenAI Client instance for embeddings.
-    Raises ValueError if API key is missing or blank.
+    Raises MissingAPIKeyError if API key is missing or blank.
     """
     if api_key is not None:
         key = api_key.strip()
@@ -66,7 +68,7 @@ def get_gemini_client(api_key: Optional[str] = None) -> genai.Client:
         key = os.getenv("GEMINI_API_KEY", "").strip()
 
     if not key:
-        raise ValueError(
+        raise MissingAPIKeyError(
             "GEMINI_API_KEY is not configured. Please add your Gemini API key to "
             "ai-service/.env or set the GEMINI_API_KEY environment variable."
         )
