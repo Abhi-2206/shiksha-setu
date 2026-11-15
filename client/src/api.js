@@ -240,10 +240,16 @@ export const aiApi = {
     });
   },
 
-  predictCutoff: async ({ college_name, branch, category, year = 2026 }) => {
+  predictCutoff: async ({ college_id, college_name, course_name, branch, category, year = 2026 }) => {
     return request('/api/ai/predict-cutoff', {
       method: 'POST',
-      body: JSON.stringify({ college_name, branch, category, year }),
+      body: JSON.stringify({
+        college_id: college_id || undefined,
+        college_name: college_name || undefined,
+        course_name: course_name || branch,
+        category,
+        year,
+      }),
     });
   },
 };
@@ -301,7 +307,8 @@ export const cutoffApi = {
   getCutoffs: async (params = {}) => {
     const searchParams = new URLSearchParams();
     if (params.collegeId) searchParams.append('collegeId', params.collegeId);
-    if (params.course) searchParams.append('course', params.course);
+    const courseVal = params.courseName || params.course;
+    if (courseVal) searchParams.append('courseName', courseVal);
     if (params.category) searchParams.append('category', params.category);
     if (params.admissionYear) searchParams.append('admissionYear', params.admissionYear);
     const qs = searchParams.toString();

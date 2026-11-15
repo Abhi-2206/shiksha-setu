@@ -1,9 +1,22 @@
 const express = require("express");
+const prisma = require("../lib/prisma");
 const authenticateToken = require("../middleware/auth.middleware");
 const aiProxyService = require("../services/aiProxy.service");
 const chatService = require("../services/chat.service");
 
 const router = express.Router();
+
+const VALID_CATEGORIES = new Set([
+  "GEN",
+  "GENERAL",
+  "OBC",
+  "SC",
+  "ST",
+  "EWS",
+  "MBC",
+  "TFWS",
+  "PWD",
+]);
 
 // -------------------------------------------------------------
 // 1. AI RAG CHATBOT ENDPOINT
@@ -104,16 +117,10 @@ router.post("/recommend-colleges", authenticateToken, async (req, res, next) => 
 // -------------------------------------------------------------
 router.post("/predict-cutoff", authenticateToken, async (req, res, next) => {
   try {
-    const { college_id, course_name, category } = req.body;
+    const { college_id, college_name, course_name, branch, category } = req.body;
 
-    if (!college_id || !college_id.trim()) {
-      return res.status(400).json({
-        success: false,
-        message: "college_id is required",
-      });
-    }
-
-    if (!course_name || !course_name.trim()) {
+    const course = (course_name || branch || "").trim();
+    if (!course) {
       return res.status(400).json({
         success: false,
         message: "course_name is required",
@@ -127,14 +134,79 @@ router.post("/predict-cutoff", authenticateToken, async (req, res, next) => {
       });
     }
 
+    const upperCategory = category.trim().toUpperCase();
+    if (!VALID_CATEGORIES.has(upperCategory)) {
+      return res.status(400).json({
+        success: false,
+        message: `Invalid category '${category}'. Allowed categories: ${Array.from(VALID_CATEGORIES).join(", ")}`,
+      });
+    }
+
+    // Convert GENERAL alias to standard GEN code
+    const normalizedCategory = upperCategory === "GENERAL" ? "GEN" : upperCategory;
+
+    const rawCollegeId = (college_id || "").trim();
+    const rawCollegeName = (college_name || "").trim();
+
+    if (!rawCollegeId && !rawCollegeName) {
+      return res.status(400).json({
+        success: false,
+        message: "college_id is required",
+      });
+    }
+
+    let resolvedCollegeId = "";
+
+    // 1. If college_id is provided, check if it matches a registered college code or numeric ID
+    if (rawCollegeId) {
+      const numId = parseInt(rawCollegeId, 10);
+      const matched = await prisma.college.findFirst({
+        where: {
+          OR: [
+            { code: { equals: rawCollegeId, mode: "insensitive" } },
+            ...(isNaN(numId) ? [] : [{ id: numId }]),
+            { name: { equals: rawCollegeId, mode: "insensitive" } },
+          ],
+        },
+      });
+      if (matched) {
+        resolvedCollegeId = matched.code;
+      }
+    }
+
+    // 2. If unresolved and college_name is provided, lookup by registered college name
+    if (!resolvedCollegeId && rawCollegeName) {
+      const matched = await prisma.college.findFirst({
+        where: {
+          OR: [
+            { code: { equals: rawCollegeName, mode: "insensitive" } },
+            { name: { equals: rawCollegeName, mode: "insensitive" } },
+            { name: { contains: rawCollegeName, mode: "insensitive" } },
+          ],
+        },
+      });
+      if (matched) {
+        resolvedCollegeId = matched.code;
+      }
+    }
+
+    // 3. Reject if the college cannot be resolved reliably to a registered college
+    if (!resolvedCollegeId) {
+      return res.status(400).json({
+        success: false,
+        message: `Unable to resolve college '${rawCollegeName || rawCollegeId}'. Please select a registered college.`,
+      });
+    }
+
     const prediction = await aiProxyService.predictCutoff({
-      college_id,
-      course_name,
-      category,
+      college_id: resolvedCollegeId,
+      course_name: course,
+      category: normalizedCategory,
     });
 
     return res.status(200).json({
       success: true,
+      prediction,
       ...prediction,
     });
   } catch (error) {

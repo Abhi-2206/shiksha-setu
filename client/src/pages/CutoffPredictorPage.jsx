@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
-import { aiApi, cutoffApi } from '../api';
+import { aiApi, cutoffApi, collegeApi } from '../api';
 import './CutoffPredictorPage.css';
 
 const COMMON_COLLEGES = [
@@ -27,6 +27,7 @@ const CATEGORIES = ['GENERAL', 'OBC', 'SC', 'ST', 'EWS', 'MBC'];
 function CutoffPredictorPage() {
   const [searchParams] = useSearchParams();
 
+  const [collegesList, setCollegesList] = useState([]);
   const [collegeName, setCollegeName] = useState(() => searchParams.get('college') || COMMON_COLLEGES[0]);
   const [branch, setBranch] = useState(() => searchParams.get('branch') || COMMON_BRANCHES[0]);
   const [category, setCategory] = useState('GENERAL');
@@ -38,29 +39,57 @@ function CutoffPredictorPage() {
   const [prediction, setPrediction] = useState(null);
   const [databaseCutoffs, setDatabaseCutoffs] = useState([]);
 
+  // Load registered colleges on mount for name/code resolution
+  useEffect(() => {
+    let isMounted = true;
+    collegeApi.getColleges()
+      .then((res) => {
+        if (isMounted && res && res.colleges && res.colleges.length > 0) {
+          setCollegesList(res.colleges);
+        }
+      })
+      .catch(() => {});
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
   const runPrediction = async (col, br, cat, yr) => {
     setLoading(true);
     setError(null);
 
+    const matchedCollege = collegesList.find(
+      (c) =>
+        c.name?.toLowerCase() === col?.toLowerCase() ||
+        c.code?.toLowerCase() === col?.toLowerCase() ||
+        String(c.id) === String(col)
+    );
+
+    const resolvedCollegeId = matchedCollege ? matchedCollege.code : col;
+    const resolvedCollegeName = matchedCollege ? matchedCollege.name : col;
+
     try {
       // 1. Call AI prediction proxy endpoint: POST /api/ai/predict-cutoff
       const aiPromise = aiApi.predictCutoff({
-        college_name: col,
-        branch: br,
+        college_id: resolvedCollegeId,
+        college_name: resolvedCollegeName,
+        course_name: br,
         category: cat,
         year: parseInt(yr, 10),
       });
 
       // 2. Concurrently fetch verified database cutoffs if available: GET /api/cutoffs
       const dbPromise = cutoffApi.getCutoffs({
-        course: br,
+        collegeId: matchedCollege?.id,
+        courseName: br,
         category: cat,
       }).catch(() => ({ cutoffs: [] }));
 
       const [aiRes, dbRes] = await Promise.allSettled([aiPromise, dbPromise]);
 
       if (aiRes.status === 'fulfilled' && aiRes.value.success) {
-        setPrediction(aiRes.value.prediction);
+        const predData = aiRes.value.prediction || aiRes.value;
+        setPrediction(predData);
       } else {
         const failureReason = aiRes.reason?.message || 'AI prediction model failed.';
         throw new Error(failureReason);
@@ -71,11 +100,13 @@ function CutoffPredictorPage() {
       }
     } catch (err) {
       console.error('Prediction error:', err);
-      setError(
-        err.message?.includes('unavailable')
-          ? 'The AI Prediction service is currently unavailable. Please verify the AI service status.'
-          : err.message || 'Unable to predict cutoff. Please try again with another college or branch.'
-      );
+      if (err.status === 401) {
+        setError('Please log in with your student or administrator account to run cutoff predictions.');
+      } else if (err.message?.includes('unavailable') || err.status === 503) {
+        setError('The AI Prediction service is currently unavailable. Please verify the AI service status.');
+      } else {
+        setError(err.message || 'Unable to predict cutoff. Please try again with another college or branch.');
+      }
       setPrediction(null);
     } finally {
       setLoading(false);
@@ -134,9 +165,13 @@ function CutoffPredictorPage() {
                 required
               />
               <datalist id="collegeDatalist">
-                {COMMON_COLLEGES.map((c) => (
-                  <option key={c} value={c} />
-                ))}
+                {collegesList.length > 0
+                  ? collegesList.map((c) => (
+                      <option key={c.id || c.code} value={c.name} />
+                    ))
+                  : COMMON_COLLEGES.map((c) => (
+                      <option key={c} value={c} />
+                    ))}
               </datalist>
             </div>
 
@@ -221,13 +256,19 @@ function CutoffPredictorPage() {
               <p className="pred-branch-sub">{branch}</p>
             </div>
 
-            {/* Expected score badge */}
+            {/* Expected cutoff badge */}
             <div className="expected-cutoff-box">
-              <span className="cutoff-box-label">Projected Cutoff Score</span>
-              <span className="cutoff-box-value">
-                {prediction.expected_cutoff || prediction.predicted_cutoff || prediction.cutoff || '74.2'}%
+              <span className="cutoff-box-label">
+                {prediction.estimated_closing_rank != null ? 'Projected Closing Rank' : 'Projected Cutoff Score'}
               </span>
-              <span className="cutoff-box-sub">Estimated Merit Threshold</span>
+              <span className="cutoff-box-value">
+                {prediction.estimated_closing_rank != null
+                  ? `Rank ${prediction.estimated_closing_rank}`
+                  : (prediction.expected_cutoff || prediction.predicted_cutoff || prediction.cutoff || 'N/A')}
+              </span>
+              <span className="cutoff-box-sub">
+                {prediction.target_year ? `Target Session ${prediction.target_year}` : 'Estimated Merit Threshold'}
+              </span>
             </div>
           </div>
 
@@ -235,19 +276,21 @@ function CutoffPredictorPage() {
           <div className="metrics-grid">
             
             <div className="metric-box">
-              <span className="metric-title">Confidence Interval</span>
+              <span className="metric-title">Model Confidence</span>
               <span className="metric-val">
-                {prediction.confidence_interval
-                  ? `${prediction.confidence_interval[0]}% – ${prediction.confidence_interval[1]}%`
-                  : '±2.5% variation range'}
+                {prediction.confidence ? `${prediction.confidence} Confidence` : (prediction.confidence_interval ? `${prediction.confidence_interval[0]}% – ${prediction.confidence_interval[1]}%` : '±2.5% variation range')}
               </span>
-              <span className="metric-note">Projected 95% statistical boundary</span>
+              <span className="metric-note">
+                {prediction.methodology || 'Projected statistical boundary'}
+              </span>
             </div>
 
             <div className="metric-box">
-              <span className="metric-title">Competition Trend</span>
+              <span className="metric-title">Cutoff Trend</span>
               <span className="metric-val trend-highlight">
-                {prediction.trend || 'Moderately Rising (+1.2%)'}
+                {prediction.trend
+                  ? prediction.trend.charAt(0).toUpperCase() + prediction.trend.slice(1)
+                  : (prediction.competition_trend || 'Stable')}
               </span>
               <span className="metric-note">Compared to preceding counseling cycle</span>
             </div>
@@ -255,9 +298,11 @@ function CutoffPredictorPage() {
             <div className="metric-box">
               <span className="metric-title">Recommendation Level</span>
               <span className="metric-val">
-                {prediction.recommendation || 'Competitive Choice'}
+                {prediction.recommendation || (prediction.explanation ? 'Trend Modeled' : 'Competitive Choice')}
               </span>
-              <span className="metric-note">Keep 2 safe backup options</span>
+              <span className="metric-note">
+                {prediction.explanation || 'Keep safe backup options'}
+              </span>
             </div>
 
           </div>
@@ -270,34 +315,30 @@ function CutoffPredictorPage() {
                 <thead>
                   <tr>
                     <th>Academic Session</th>
-                    <th>Opening Percentage / Rank</th>
-                    <th>Closing Percentage / Rank</th>
-                    <th>Seats Allocated</th>
+                    <th>Opening Rank / Score</th>
+                    <th>Closing Rank / Score</th>
+                    <th>Source / Session</th>
                     <th>Record Status</th>
                   </tr>
                 </thead>
                 <tbody>
-                  <tr>
-                    <td>2025-26 (Past Year)</td>
-                    <td>82.4%</td>
-                    <td>73.8%</td>
-                    <td>60 / 60</td>
-                    <td><span className="badge-verified">Verified DTE Data</span></td>
-                  </tr>
-                  <tr>
-                    <td>2024-25</td>
-                    <td>80.1%</td>
-                    <td>71.5%</td>
-                    <td>60 / 60</td>
-                    <td><span className="badge-verified">Verified DTE Data</span></td>
-                  </tr>
-                  <tr>
-                    <td>2023-24</td>
-                    <td>79.0%</td>
-                    <td>69.8%</td>
-                    <td>58 / 60</td>
-                    <td><span className="badge-verified">Verified DTE Data</span></td>
-                  </tr>
+                  {prediction.historical_records && prediction.historical_records.length > 0 ? (
+                    prediction.historical_records.map((rec, i) => (
+                      <tr key={i}>
+                        <td>Session {rec.admission_year || rec.year}</td>
+                        <td>{rec.opening_rank != null ? `Rank ${rec.opening_rank}` : (rec.opening_cutoff || 'N/A')}</td>
+                        <td>{rec.closing_rank != null ? `Rank ${rec.closing_rank}` : (rec.closing_cutoff || 'N/A')}</td>
+                        <td>{rec.source || `DTE Report ${rec.source_year || ''}`}</td>
+                        <td><span className="badge-verified">Official Record</span></td>
+                      </tr>
+                    ))
+                  ) : (
+                    <tr>
+                      <td colSpan="5" className="empty-history-cell" style={{ textAlign: 'center', padding: '1.5rem', color: '#64748b' }}>
+                        No verified historical cutoff records are available for this selection.
+                      </td>
+                    </tr>
+                  )}
                 </tbody>
               </table>
             </div>
@@ -309,10 +350,14 @@ function CutoffPredictorPage() {
             <div className="disclaimer-content">
               <strong>Important Disclaimer & Limitations:</strong>
               <p>
-                Cutoff predictions are estimated using regression algorithms based on historical DTE counseling 
-                records and seat capacities. <strong>Predictions do not guarantee seat allotment.</strong> 
-                Actual cutoffs vary each round depending on the total registered candidates, state merit ranks, 
-                and reservation category preferences for the active academic session.
+                {prediction.disclaimer || (
+                  <>
+                    Cutoff predictions are estimated using regression algorithms based on historical DTE counseling
+                    records and seat capacities. <strong>Predictions do not guarantee seat allotment.</strong>
+                    Actual cutoffs vary each round depending on the total registered candidates, state merit ranks,
+                    and reservation category preferences for the active academic session.
+                  </>
+                )}
               </p>
             </div>
           </div>
@@ -353,11 +398,11 @@ function CutoffPredictorPage() {
                 {databaseCutoffs.map((item, idx) => (
                   <tr key={idx}>
                     <td>{item.college?.name || collegeName}</td>
-                    <td>{item.course}</td>
+                    <td>{item.courseName || item.course || branch}</td>
                     <td>{item.category}</td>
                     <td>{item.admissionYear}</td>
-                    <td>{item.openingRank || 'N/A'}</td>
-                    <td>{item.closingRank || 'N/A'}</td>
+                    <td>{item.openingRank ? `Rank ${item.openingRank}` : 'N/A'}</td>
+                    <td>{item.closingRank ? `Rank ${item.closingRank}` : 'N/A'}</td>
                   </tr>
                 ))}
               </tbody>
