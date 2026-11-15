@@ -182,13 +182,13 @@
 }
 
 /* Mobile responsive menu */
-@media (max-width: 900px) {
-  .navbar-container {
-    flex-wrap: wrap;
-    padding: 12px 16px;
+@media (max-width: 960px) {
+  .navbar-mobile-toggle {
+    display: block;
   }
 
   .navbar-links {
+    display: none;
     order: 3;
     width: 100%;
     flex-direction: column;
@@ -196,6 +196,15 @@
     gap: 4px;
     padding-top: 10px;
     border-top: 1px solid #E2E2E2;
+  }
+
+  .navbar-links.mobile-open {
+    display: flex;
+  }
+
+  .navbar-container {
+    flex-wrap: wrap;
+    padding: 12px 16px;
   }
 
   .nav-item a {

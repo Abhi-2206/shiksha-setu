@@ -1,0 +1,375 @@
+/* =========================================================
+   College Recommendations Page Styles
+   Theme: Royal Gold (#D4AF37), White (#FFFFFF),
+          Charcoal (#252525), Light Gray (#F7F7F7)
+   ========================================================= */
+
+.recommendations-page {
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+}
+
+/* Page Header */
+.page-header {
+  background-color: #FFFFFF;
+  border: 1px solid #E2E2E2;
+  border-left: 5px solid #D4AF37;
+  border-radius: 6px;
+  padding: 24px 28px;
+}
+
+.page-header-badge {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #8c7322;
+  background-color: rgba(212, 175, 55, 0.12);
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: 4px;
+  margin-bottom: 8px;
+}
+
+.page-header-title {
+  font-size: 26px;
+  font-weight: 700;
+  color: #252525;
+  margin: 0 0 6px 0;
+}
+
+.page-header-title span {
+  color: #8c7322;
+}
+
+.page-header-subtitle {
+  font-size: 14px;
+  color: #666666;
+  margin: 0;
+  max-width: 800px;
+  line-height: 1.5;
+}
+
+/* Form Card */
+.recom-form-card {
+  background-color: #FFFFFF;
+  border: 1px solid #E2E2E2;
+  border-radius: 6px;
+  padding: 24px 28px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+}
+
+.recom-form-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 18px;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.form-group label {
+  font-size: 13px;
+  font-weight: 600;
+  color: #252525;
+}
+
+.req {
+  color: #D32F2F;
+}
+
+.input-hint {
+  font-size: 11px;
+  color: #888888;
+}
+
+.form-submit-row {
+  margin-top: 20px;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.btn-find-colleges {
+  background-color: #D4AF37;
+  color: #252525;
+  border: 1px solid #D4AF37;
+  padding: 12px 24px;
+  border-radius: 4px;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-find-colleges:hover:not(:disabled) {
+  background-color: #b8972c;
+  color: #FFFFFF;
+}
+
+.btn-find-colleges:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+.recom-error-alert {
+  background-color: #FFEBEE;
+  border: 1px solid #FFCDD2;
+  color: #C62828;
+  padding: 14px 18px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 14px;
+}
+
+/* Results Section */
+.recom-results-section {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.results-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.results-title {
+  font-size: 20px;
+  font-weight: 700;
+  color: #252525;
+}
+
+.results-subtitle {
+  font-size: 13px;
+  color: #666666;
+}
+
+/* Filter Tabs */
+.recom-tier-tabs {
+  display: flex;
+  gap: 6px;
+  background-color: #F0F0F0;
+  padding: 4px;
+  border-radius: 6px;
+}
+
+.tab-btn {
+  background: none;
+  border: none;
+  padding: 8px 14px;
+  border-radius: 4px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #555555;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.tab-btn:hover {
+  color: #252525;
+}
+
+.tab-btn.active {
+  background-color: #FFFFFF;
+  color: #252525;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
+}
+
+.safe-tab.active {
+  color: #2E7D32;
+}
+
+.mod-tab.active {
+  color: #F57C00;
+}
+
+.amb-tab.active {
+  color: #D32F2F;
+}
+
+/* Cards Grid */
+.colleges-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px;
+}
+
+.college-recom-card {
+  background-color: #FFFFFF;
+  border: 1px solid #E2E2E2;
+  border-radius: 6px;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  transition: all 0.2s;
+}
+
+.college-recom-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.06);
+}
+
+.card-tier-safe {
+  border-top: 4px solid #2E7D32;
+}
+
+.card-tier-moderate {
+  border-top: 4px solid #F57C00;
+}
+
+.card-tier-ambitious {
+  border-top: 4px solid #D32F2F;
+}
+
+.card-top-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.tier-badge {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 4px;
+}
+
+.badge-safe {
+  background-color: #E8F5E9;
+  color: #2E7D32;
+}
+
+.badge-mod {
+  background-color: #FFF3E0;
+  color: #E65100;
+}
+
+.badge-amb {
+  background-color: #FFEBEE;
+  color: #C62828;
+}
+
+.cutoff-pill {
+  font-size: 11px;
+  color: #555555;
+  background-color: #F7F7F7;
+  padding: 2px 6px;
+  border-radius: 4px;
+  border: 1px solid #E2E2E2;
+}
+
+.college-card-name {
+  font-size: 16px;
+  font-weight: 700;
+  color: #252525;
+  line-height: 1.4;
+  margin: 0;
+}
+
+.college-meta-details {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 13px;
+  background-color: #FAFAFA;
+  padding: 8px 10px;
+  border-radius: 4px;
+  border: 1px solid #F0F0F0;
+}
+
+.meta-line {
+  display: flex;
+  justify-content: space-between;
+}
+
+.meta-label {
+  color: #777777;
+}
+
+.meta-val {
+  font-weight: 600;
+  color: #252525;
+}
+
+.tier-rationale {
+  font-size: 12px;
+  color: #666666;
+  font-style: italic;
+  margin: 0;
+  flex: 1;
+}
+
+.card-footer-actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-top: 1px solid #F0F0F0;
+  padding-top: 12px;
+  font-size: 13px;
+}
+
+.card-cutoff-link {
+  color: #8c7322;
+  font-weight: 600;
+}
+
+.card-cutoff-link:hover {
+  text-decoration: underline;
+}
+
+.card-ask-ai {
+  background-color: rgba(212, 175, 55, 0.15);
+  color: #8c7322;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.recom-empty-box {
+  background-color: #FFFFFF;
+  border: 1px solid #E2E2E2;
+  border-radius: 6px;
+  padding: 40px;
+  text-align: center;
+}
+
+.dte-disclaimer-box {
+  background-color: #FFFDE7;
+  border: 1px solid #FFF59D;
+  border-left: 4px solid #D4AF37;
+  padding: 14px 18px;
+  border-radius: 4px;
+  display: flex;
+  gap: 12px;
+  font-size: 13px;
+  color: #5D4037;
+}
+
+@media (max-width: 992px) {
+  .recom-form-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .colleges-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 640px) {
+  .recom-form-grid {
+    grid-template-columns: 1fr;
+  }
+  .colleges-grid {
+    grid-template-columns: 1fr;
+  }
+}
