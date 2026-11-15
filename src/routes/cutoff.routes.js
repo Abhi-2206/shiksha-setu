@@ -25,7 +25,7 @@ const VALID_CATEGORIES = new Set([
 // -------------------------------------------------------------
 router.get("/", async (req, res, next) => {
   try {
-    const { collegeId, courseName, category, admissionYear, maxClosingRank } = req.query;
+    const { collegeId, courseName, course, category, admissionYear, maxClosingRank } = req.query;
 
     if (category && !VALID_CATEGORIES.has(category.toUpperCase())) {
       return res.status(400).json({
@@ -35,10 +35,11 @@ router.get("/", async (req, res, next) => {
     }
 
     const normCat = category && category.toUpperCase() === "GENERAL" ? "GEN" : (category ? category.toUpperCase() : undefined);
+    const targetCourse = (courseName || course || "").trim() || undefined;
 
     const cutoffs = await collegeService.getCutoffs({
       collegeId,
-      courseName,
+      courseName: targetCourse,
       category: normCat,
       admissionYear,
       maxClosingRank,
