@@ -5,7 +5,51 @@
  * Express backend (which proxies to the AI service and PostgreSQL database).
  */
 
-export const apiBase = import.meta.env.VITE_API_BASE || '';
+/**
+ * Resolves the API base URL:
+ * 1. If import.meta.env.VITE_API_BASE is provided and non-empty, use it with trailing slashes removed.
+ * 2. Otherwise, detect Electron desktop environment (window.location.protocol === 'file:' or window.electronAPI available).
+ * 3. If Electron is detected, use 'http://localhost:5001'.
+ * 4. Otherwise, return an empty string (preserves Vite development proxy and supports same-origin web deployments).
+ */
+const resolveApiBase = () => {
+  const envBase = (import.meta.env.VITE_API_BASE || '').trim();
+  if (envBase) {
+    return envBase.replace(/\/+$/, '');
+  }
+
+  // Detect Electron desktop environment safely
+  const isElectron =
+    typeof window !== 'undefined' &&
+    (window.location.protocol === 'file:' || Boolean(window.electronAPI));
+
+  if (isElectron) {
+    return 'http://localhost:5001';
+  }
+
+  return '';
+};
+
+export const apiBase = resolveApiBase();
+
+// Warnings for production environments
+if (import.meta.env.PROD && typeof window !== 'undefined') {
+  const isElectron = window.location.protocol === 'file:' || Boolean(window.electronAPI);
+
+  // Warn if production web build has an explicit localhost URL that is NOT being used by Electron
+  if (!isElectron && (apiBase.startsWith('http://localhost') || apiBase.startsWith('http://127.0.0.1'))) {
+    console.warn(
+      `[ShikshaSetu] Warning: Production web build is configured with a localhost API URL (${apiBase}). ` +
+      'External users will not be able to connect to this backend.'
+    );
+  } else if (!isElectron && !apiBase) {
+    // If a production browser has an empty API base, log a non-blocking advisory
+    console.warn(
+      '[ShikshaSetu] Info: VITE_API_BASE is not configured. Requests will use relative paths (/api/*). ' +
+      'If frontend and backend are hosted on separate domains, ensure VITE_API_BASE is set in your build settings.'
+    );
+  }
+}
 
 // Token storage helpers
 export const getStoredToken = () => {
