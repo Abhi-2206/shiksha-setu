@@ -26,6 +26,8 @@ from google.genai import types
 from google.genai.errors import APIError
 
 # Support both package imports and standalone script execution
+from exceptions import MissingAPIKeyError
+
 try:
     from chatbot.prompt import RAG_SYSTEM_INSTRUCTION, SYSTEM_INSTRUCTION
 except ImportError:
@@ -56,7 +58,7 @@ def get_gemini_client(api_key: str | None = None) -> genai.Client:
     """
     Initializes and returns a Google GenAI client instance.
     Configures http_options with api_version='v1beta' to support system instructions.
-    Raises ValueError if the API key is missing or blank.
+    Raises MissingAPIKeyError if the API key is missing or blank.
     """
     if api_key is not None:
         key = api_key.strip()
@@ -64,7 +66,7 @@ def get_gemini_client(api_key: str | None = None) -> genai.Client:
         key = os.getenv("GEMINI_API_KEY", "").strip()
 
     if not key:
-        raise ValueError(
+        raise MissingAPIKeyError(
             "GEMINI_API_KEY is not configured. Please add your Gemini API key to "
             "ai-service/.env or set the GEMINI_API_KEY environment variable."
         )
@@ -195,6 +197,15 @@ def ask_chatbot(
             retrieved_chunks = retriever(cleaned_question, top_k=top_k, collection=collection)
         else:
             retrieved_chunks = retriever(cleaned_question, top_k=top_k)
+    except MissingAPIKeyError as key_err:
+        return {
+            "answer": None,
+            "sources": [],
+            "success": False,
+            "status": "error",
+            "error_type": "missing_api_key",
+            "message": str(key_err),
+        }
     except ValueError as val_err:
         return {
             "answer": None,
