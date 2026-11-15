@@ -1,6 +1,7 @@
 const express = require("express");
+const prisma = require("../lib/prisma");
 const authenticateToken = require("../middleware/auth.middleware");
-const { requireAdmin } = require("../middleware/rbac.middleware");
+const requireAdmin = require("../middleware/admin.middleware");
 const collegeService = require("../services/college.service");
 
 const router = express.Router();
@@ -13,11 +14,28 @@ const router = express.Router();
 router.get("/", async (req, res, next) => {
   try {
     const { location, district, type, isActive } = req.query;
-    const colleges = await collegeService.listColleges({
-      location,
-      district,
-      type,
-      isActive: isActive !== undefined ? isActive === "true" : undefined,
+    const filter = {};
+
+    if (district) {
+      filter.district = { equals: district, mode: "insensitive" };
+    }
+    if (location) {
+      filter.location = { contains: location, mode: "insensitive" };
+    }
+    if (type) {
+      filter.type = { equals: type, mode: "insensitive" };
+    }
+    if (isActive !== undefined) {
+      filter.isActive = isActive === "true";
+    }
+
+    const colleges = await prisma.college.findMany({
+      where: filter,
+      include: {
+        branches: true,
+        _count: { select: { cutoffs: true } },
+      },
+      orderBy: { name: "asc" },
     });
 
     return res.status(200).json({
@@ -31,12 +49,13 @@ router.get("/", async (req, res, next) => {
 });
 
 // -------------------------------------------------------------
-// 2. GET COLLEGE DETAILS (Public / Authenticated Students)
+// 2. GET SINGLE COLLEGE BY ID
 // Endpoint: GET /api/colleges/:id
 // -------------------------------------------------------------
 router.get("/:id", async (req, res, next) => {
   try {
     const collegeId = parseInt(req.params.id, 10);
+
     if (isNaN(collegeId)) {
       return res.status(400).json({
         success: false,
@@ -44,7 +63,22 @@ router.get("/:id", async (req, res, next) => {
       });
     }
 
-    const college = await collegeService.getCollege(collegeId);
+    const college = await prisma.college.findUnique({
+      where: { id: collegeId },
+      include: {
+        branches: true,
+        cutoffs: {
+          orderBy: [{ admissionYear: "desc" }, { closingRank: "asc" }],
+        },
+      },
+    });
+
+    if (!college) {
+      return res.status(404).json({
+        success: false,
+        message: "College not found",
+      });
+    }
 
     return res.status(200).json({
       success: true,
@@ -61,30 +95,42 @@ router.get("/:id", async (req, res, next) => {
 // -------------------------------------------------------------
 router.post("/", authenticateToken, requireAdmin, async (req, res, next) => {
   try {
-    const { code, name, location, district, type, establishedYear, website, contactEmail, contactPhone, address } = req.body;
+    const {
+      code,
+      name,
+      location,
+      district,
+      city,
+      type = "GOVERNMENT",
+      establishedYear,
+      website,
+      contactEmail,
+      contactPhone,
+      address,
+    } = req.body;
 
-    if (!code || !name || !location) {
+    if (!code || !name) {
       return res.status(400).json({
         success: false,
-        message: "code, name, and location are required fields",
+        message: "code and name are required fields",
       });
     }
 
-    const college = await collegeService.createCollege(
-      {
-        code,
-        name,
-        location,
-        district,
-        type,
-        establishedYear,
-        website,
-        contactEmail,
-        contactPhone,
-        address,
+    const college = await prisma.college.create({
+      data: {
+        code: code.trim().toUpperCase(),
+        name: name.trim(),
+        location: (location || district || city || "Rajasthan").trim(),
+        district: district ? district.trim() : null,
+        city: city ? city.trim() : null,
+        type: type ? type.toUpperCase() : "GOVERNMENT",
+        establishedYear: establishedYear ? parseInt(establishedYear, 10) : null,
+        website: website || null,
+        contactEmail: contactEmail || null,
+        contactPhone: contactPhone || null,
+        address: address || null,
       },
-      req.user
-    );
+    });
 
     return res.status(201).json({
       success: true,
@@ -104,13 +150,13 @@ router.put("/:id", authenticateToken, requireAdmin, async (req, res, next) => {
   try {
     const collegeId = parseInt(req.params.id, 10);
     if (isNaN(collegeId)) {
-      return res.status(400).json({
-        success: false,
-        message: "Invalid college ID",
-      });
+      return res.status(400).json({ success: false, message: "Invalid college ID" });
     }
 
-    const updated = await collegeService.updateCollege(collegeId, req.body, req.user);
+    const updated = await prisma.college.update({
+      where: { id: collegeId },
+      data: req.body,
+    });
 
     return res.status(200).json({
       success: true,
@@ -130,18 +176,53 @@ router.delete("/:id", authenticateToken, requireAdmin, async (req, res, next) =>
   try {
     const collegeId = parseInt(req.params.id, 10);
     if (isNaN(collegeId)) {
-      return res.status(400).json({
-        success: false,
-        message: "Invalid college ID",
-      });
+      return res.status(400).json({ success: false, message: "Invalid college ID" });
     }
 
-    await collegeService.deleteCollege(collegeId, req.user);
+    await prisma.college.delete({
+      where: { id: collegeId },
+    });
 
     return res.status(200).json({
       success: true,
       message: "College deleted successfully",
     });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// -------------------------------------------------------------
+// 6. BRANCH ENDPOINTS (Admin Only creation/deletion)
+// -------------------------------------------------------------
+router.post("/:id/branches", authenticateToken, requireAdmin, async (req, res, next) => {
+  try {
+    const collegeId = parseInt(req.params.id, 10);
+    const { name, code, durationYears = 3, seats = 60 } = req.body;
+
+    const branch = await prisma.branch.create({
+      data: {
+        collegeId,
+        name: name.trim(),
+        code: code.trim().toUpperCase(),
+        durationYears: parseInt(durationYears, 10) || 3,
+        seats: parseInt(seats, 10) || 60,
+      },
+    });
+
+    return res.status(201).json({ success: true, branch });
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.get("/:id/branches", async (req, res, next) => {
+  try {
+    const collegeId = parseInt(req.params.id, 10);
+    const branches = await prisma.branch.findMany({
+      where: { collegeId },
+    });
+    return res.status(200).json({ success: true, branches });
   } catch (error) {
     next(error);
   }

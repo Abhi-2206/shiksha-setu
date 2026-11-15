@@ -16,28 +16,24 @@ const app = express();
 
 // ============================================================================
 // CORS Configuration
-// Restricts origin to Vite dev server and configurable production origin.
-// Wildcards are strictly prevented when credentials are enabled.
+// Supports Vite dev server, Electron desktop renderer, and production URL.
 // ============================================================================
-const allowedOrigins = [
+const ALLOWED_ORIGINS = new Set([
   "http://localhost:5173",
+  "http://localhost:5174",
   "http://127.0.0.1:5173",
+  "http://localhost:5001",
   process.env.FRONTEND_URL,
-].filter(Boolean);
+].filter(Boolean));
 
 app.use(
   cors({
     origin: function (origin, callback) {
-      // Allow requests with no origin (e.g. mobile apps, curl, server-to-server)
-      if (!origin) return callback(null, true);
-
-      if (allowedOrigins.includes(origin)) {
+      // Electron production sends origin: 'null' (file:// protocol) or undefined for same-origin
+      if (!origin || origin === "null" || ALLOWED_ORIGINS.has(origin)) {
         return callback(null, true);
-      } else {
-        const corsError = new Error(`CORS policy violation: Origin '${origin}' is not authorized.`);
-        corsError.statusCode = 403;
-        return callback(corsError);
       }
+      return callback(new Error(`CORS policy violation: Origin '${origin}' is not authorized.`));
     },
     credentials: true,
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
@@ -62,7 +58,7 @@ app.get("/api/health", (req, res) => {
 // ============================================================================
 app.use("/api/auth", authRoutes);
 app.use("/api/student", studentRoutes);
-app.use("/api/students", studentRoutes); // Alias for plural convention
+app.use("/api/students", studentRoutes); // Supports both singular and plural conventions
 app.use("/api/chat", chatRoutes);
 app.use("/api/ai", aiRoutes);
 app.use("/api/colleges", collegeRoutes);

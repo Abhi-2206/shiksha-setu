@@ -1,6 +1,7 @@
 const express = require("express");
+const prisma = require("../lib/prisma");
 const authenticateToken = require("../middleware/auth.middleware");
-const { requireAdmin } = require("../middleware/rbac.middleware");
+const requireAdmin = require("../middleware/admin.middleware");
 const collegeService = require("../services/college.service");
 
 const router = express.Router();
@@ -14,6 +15,7 @@ const VALID_CATEGORIES = new Set([
   "MBC",
   "TFWS",
   "PWD",
+  "GENERAL",
 ]);
 
 // -------------------------------------------------------------
@@ -32,10 +34,12 @@ router.get("/", async (req, res, next) => {
       });
     }
 
+    const normCat = category && category.toUpperCase() === "GENERAL" ? "GEN" : (category ? category.toUpperCase() : undefined);
+
     const cutoffs = await collegeService.getCutoffs({
       collegeId,
       courseName,
-      category: category ? category.toUpperCase() : undefined,
+      category: normCat,
       admissionYear,
       maxClosingRank,
     });
@@ -75,6 +79,8 @@ router.post("/", authenticateToken, requireAdmin, async (req, res, next) => {
       });
     }
 
+    const normCat = category.toUpperCase() === "GENERAL" ? "GEN" : category.toUpperCase();
+
     if (!VALID_CATEGORIES.has(category.toUpperCase())) {
       return res.status(400).json({
         success: false,
@@ -93,7 +99,7 @@ router.post("/", authenticateToken, requireAdmin, async (req, res, next) => {
       {
         collegeId,
         courseName,
-        category: category.toUpperCase(),
+        category: normCat,
         admissionYear,
         openingRank,
         closingRank,

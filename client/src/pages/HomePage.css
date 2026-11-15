@@ -1,0 +1,642 @@
+/* HomePage Styles */
+
+.home-page {
+  display: flex;
+  flex-direction: column;
+  gap: 40px;
+}
+
+/* =========================================================
+   Milestone 2: Hero Section
+   ========================================================= */
+
+.hero-section {
+  background-color: #FFFFFF;
+  border: 1px solid #E2E2E2;
+  border-left: 6px solid #D4AF37; /* Royal Gold accent line */
+  border-radius: 6px;
+  padding: 50px 40px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.03);
+}
+
+.hero-content {
+  max-width: 850px;
+}
+
+/* Government Badge */
+.gov-badge {
+  display: inline-block;
+  background-color: rgba(212, 175, 55, 0.12); /* Subtle Gold Tint */
+  color: #8c7322;
+  border: 1px solid #D4AF37;
+  padding: 6px 14px;
+  border-radius: 20px;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.4px;
+  margin-bottom: 20px;
+  text-transform: uppercase;
+}
+
+/* Main Heading */
+.hero-title {
+  font-size: 38px;
+  line-height: 1.25;
+  color: #252525;
+  font-weight: 700;
+  margin-bottom: 18px;
+}
+
+.hero-title .highlight {
+  color: #D4AF37; /* Royal Gold */
+}
+
+/* Subtitle Description */
+.hero-description {
+  font-size: 17px;
+  line-height: 1.65;
+  color: #4a4a4a;
+  margin-bottom: 32px;
+}
+
+/* Call to Action Buttons */
+.hero-actions {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 40px;
+}
+
+.btn-primary {
+  display: inline-block;
+  background-color: #D4AF37; /* Royal Gold */
+  color: #252525;
+  font-weight: 600;
+  font-size: 15px;
+  padding: 12px 26px;
+  border-radius: 4px;
+  border: 1px solid #D4AF37;
+  cursor: pointer;
+  transition: background-color 0.2s, color 0.2s;
+  text-align: center;
+}
+
+.btn-primary:hover {
+  background-color: #b8972c;
+  color: #FFFFFF;
+}
+
+.btn-secondary {
+  display: inline-block;
+  background-color: #FFFFFF;
+  color: #252525;
+  font-weight: 600;
+  font-size: 15px;
+  padding: 12px 26px;
+  border-radius: 4px;
+  border: 1px solid #C4C4C4;
+  cursor: pointer;
+  transition: border-color 0.2s, color 0.2s;
+  text-align: center;
+}
+
+.btn-secondary:hover {
+  border-color: #D4AF37;
+  color: #D4AF37;
+}
+
+/* Highlight Features / Stats Bar */
+.hero-highlights {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px;
+  padding-top: 30px;
+  border-top: 1px solid #EAEAEA;
+}
+
+.highlight-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.highlight-number {
+  font-size: 24px;
+  font-weight: 700;
+  color: #252525;
+}
+
+.highlight-label {
+  font-size: 13px;
+  color: #666666;
+  font-weight: 500;
+}
+
+/* =========================================================
+   Milestone 3: Explore ShikshaSetu (Quick Access Cards)
+   ========================================================= */
+
+.explore-section {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.section-header {
+  border-left: 4px solid #D4AF37;
+  padding-left: 14px;
+}
+
+.section-title {
+  font-size: 24px;
+  font-weight: 700;
+  color: #252525;
+  margin-bottom: 4px;
+}
+
+.section-subtitle {
+  font-size: 14px;
+  color: #666666;
+}
+
+/* Grid: 4 columns on large screens */
+.quick-cards-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 20px;
+}
+
+/* Clickable Card Link */
+.access-card {
+  background-color: #FFFFFF;
+  border: 1px solid #E2E2E2;
+  border-radius: 6px;
+  padding: 24px 20px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  text-decoration: none;
+  transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+  min-height: 200px;
+}
+
+/* Hover effect: Gold border + slight elevation */
+.access-card:hover {
+  border-color: #D4AF37;
+  box-shadow: 0 4px 12px rgba(212, 175, 55, 0.15);
+  transform: translateY(-2px);
+}
+
+.card-top {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+/* Visual Icon Box */
+.card-icon-box {
+  width: 46px;
+  height: 46px;
+  border-radius: 6px;
+  background-color: rgba(212, 175, 55, 0.12);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #D4AF37;
+  transition: background-color 0.2s, color 0.2s;
+}
+
+.access-card:hover .card-icon-box {
+  background-color: #D4AF37;
+  color: #FFFFFF;
+}
+
+.card-title {
+  font-size: 17px;
+  font-weight: 700;
+  color: #252525;
+  margin: 0;
+}
+
+.card-description {
+  font-size: 13px;
+  line-height: 1.5;
+  color: #666666;
+  margin: 0;
+}
+
+/* Bottom Card Action Link */
+.card-action {
+  font-size: 13px;
+  font-weight: 600;
+  color: #D4AF37;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 18px;
+  padding-top: 14px;
+  border-top: 1px solid #F0F0F0;
+  transition: color 0.2s;
+}
+
+.access-card:hover .card-action {
+  color: #b8972c;
+}
+
+/* =========================================================
+   Milestone 4: About ShikshaSetu Section
+   ========================================================= */
+
+.about-section {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.about-card {
+  background-color: #FFFFFF;
+  border: 1px solid #E2E2E2;
+  border-radius: 6px;
+  padding: 36px 32px;
+}
+
+.about-layout {
+  display: grid;
+  grid-template-columns: 1.1fr 1fr;
+  gap: 40px;
+  align-items: start;
+}
+
+.about-text {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.about-text p {
+  font-size: 15px;
+  line-height: 1.7;
+  color: #4a4a4a;
+}
+
+.about-concluding-box {
+  background-color: #F7F7F7;
+  border-left: 4px solid #D4AF37;
+  padding: 14px 18px;
+  border-radius: 4px;
+  margin-top: 6px;
+}
+
+.about-concluding-box p {
+  font-size: 14px;
+  font-weight: 600;
+  color: #252525;
+  margin: 0;
+}
+
+/* Objectives column */
+.about-objectives {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.objectives-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: #252525;
+  margin-bottom: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.objective-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  background-color: #FAFAFA;
+  border: 1px solid #EDEDED;
+  border-radius: 6px;
+  padding: 12px 14px;
+  transition: border-color 0.2s;
+}
+
+.objective-item:hover {
+  border-color: #D4AF37;
+}
+
+.objective-number {
+  background-color: rgba(212, 175, 55, 0.15);
+  color: #8c7322;
+  font-weight: 700;
+  font-size: 13px;
+  min-width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.objective-text {
+  font-size: 14px;
+  color: #333333;
+  line-height: 1.45;
+}
+
+/* =========================================================
+   Milestone 4: Important Notices Section
+   ========================================================= */
+
+.notices-section {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.notices-disclaimer {
+  background-color: #FFFDF5;
+  border: 1px solid #F0E6C2;
+  border-left: 4px solid #D4AF37;
+  padding: 10px 16px;
+  border-radius: 4px;
+  font-size: 13px;
+  color: #7A6517;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.notices-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px;
+}
+
+.notice-card {
+  background-color: #FFFFFF;
+  border: 1px solid #E2E2E2;
+  border-radius: 6px;
+  padding: 24px 20px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 16px;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.notice-card:hover {
+  border-color: #D4AF37;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.04);
+}
+
+.notice-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.notice-tag {
+  background-color: rgba(212, 175, 55, 0.12);
+  color: #8c7322;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 3px 8px;
+  border-radius: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+.notice-date {
+  font-size: 12px;
+  color: #888888;
+  font-weight: 500;
+}
+
+.notice-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: #252525;
+  margin: 0;
+  line-height: 1.4;
+}
+
+.notice-desc {
+  font-size: 13px;
+  line-height: 1.55;
+  color: #666666;
+  margin: 0;
+}
+
+.notice-action-btn {
+  background: none;
+  border: 1px solid #D4AF37;
+  color: #252525;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 8px 14px;
+  border-radius: 4px;
+  cursor: pointer;
+  align-self: flex-start;
+  transition: background-color 0.2s, color 0.2s;
+}
+
+.notice-action-btn:hover {
+  background-color: #D4AF37;
+  color: #FFFFFF;
+}
+
+/* =========================================================
+   Milestone 5: Footer Section
+   ========================================================= */
+
+.home-footer {
+  background-color: #252525; /* Dark Charcoal Government Theme */
+  border-top: 3px solid #D4AF37; /* Royal Gold Top Accent */
+  color: #E0E0E0;
+  border-radius: 6px;
+  padding: 40px 36px 20px;
+  margin-top: 10px;
+}
+
+.footer-container {
+  display: grid;
+  grid-template-columns: 1.5fr 1fr 1fr;
+  gap: 40px;
+  margin-bottom: 30px;
+}
+
+.footer-col {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.footer-brand-title {
+  font-size: 22px;
+  font-weight: 700;
+  color: #FFFFFF;
+  letter-spacing: 0.5px;
+}
+
+.footer-brand-title span {
+  color: #D4AF37; /* Royal Gold */
+}
+
+.footer-dept-name {
+  font-size: 12px;
+  color: #D4AF37;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+.footer-brand-desc {
+  font-size: 13px;
+  line-height: 1.6;
+  color: #B0B0B0;
+  margin: 0;
+}
+
+.footer-heading {
+  font-size: 15px;
+  font-weight: 700;
+  color: #FFFFFF;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  position: relative;
+  padding-bottom: 8px;
+}
+
+.footer-heading::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  width: 28px;
+  height: 2px;
+  background-color: #D4AF37;
+}
+
+.footer-links {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.footer-links li a {
+  color: #B5B5B5;
+  font-size: 13px;
+  text-decoration: none;
+  transition: color 0.2s, padding-left 0.2s;
+  display: inline-block;
+}
+
+.footer-links li a:hover {
+  color: #D4AF37;
+  padding-left: 4px;
+}
+
+/* Footer Bottom Bar */
+.footer-bottom {
+  border-top: 1px solid #383838;
+  padding-top: 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.footer-bottom p {
+  font-size: 12px;
+  color: #8E8E8E;
+  margin: 0;
+}
+
+.footer-disclaimer {
+  font-style: italic;
+  font-size: 11px !important;
+  color: #7A7A7A !important;
+}
+
+/* =========================================================
+   Responsive Adjustments
+   ========================================================= */
+
+@media (max-width: 992px) {
+  /* 2 cards per row on medium screens */
+  .quick-cards-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .about-layout {
+    grid-template-columns: 1fr;
+    gap: 30px;
+  }
+
+  .notices-grid {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+
+  .footer-container {
+    grid-template-columns: 1fr;
+    gap: 28px;
+  }
+
+  .footer-bottom {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
+
+@media (max-width: 768px) {
+  .hero-section {
+    padding: 30px 20px;
+  }
+
+  .hero-title {
+    font-size: 28px;
+  }
+
+  .hero-description {
+    font-size: 15px;
+  }
+
+  .hero-highlights {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+
+  .hero-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .btn-primary,
+  .btn-secondary {
+    width: 100%;
+  }
+
+  .about-card {
+    padding: 24px 20px;
+  }
+
+  .home-footer {
+    padding: 30px 20px 20px;
+  }
+}
+
+@media (max-width: 600px) {
+  /* 1 card per row on small screens */
+  .quick-cards-grid {
+    grid-template-columns: 1fr;
+  }
+}

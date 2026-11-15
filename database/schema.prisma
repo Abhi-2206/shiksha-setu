@@ -61,41 +61,47 @@ model User {
 // ============================================================================
 
 model StudentProfile {
-  id                   Int       @id @default(autoincrement())
-  userId               Int       @unique
-  user                 User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id                    Int       @id @default(autoincrement())
+  userId                Int       @unique
+  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   // Personal & Contact Information
-  fullName             String?
-  phoneNumber          String?
-  alternatePhone       String?
-  dateOfBirth          DateTime?
-  gender               String?
-  address              String?
-  district             String?
-  state                String?   @default("Rajasthan")
-  pincode              String?
-  isRajasthanDomicile  Boolean   @default(true)
+  fullName              String?
+  phoneNumber           String?
+  alternatePhone        String?
+  dateOfBirth           DateTime?
+  gender                String?
+  address               String?
+  district              String?
+  city                  String?
+  state                 String?   @default("Rajasthan")
+  pincode               String?
+  isRajasthanDomicile   Boolean   @default(true)
 
   // Academic Details
-  qualifyingExam       String?   // e.g., "Class 10", "Class 12", "Diploma"
-  tenthPercentage      Float?
-  twelfthPercentage    Float?
-  diplomaPercentage    Float?
-  examRank             Int?      // Merit rank for counseling / cutoffs
-  examRollNumber       String?
+  currentEducationLevel String?
+  instituteName         String?
+  courseOrStream        String?
+  passingYear           Int?
+  percentageOrCgpa      Float?
+  qualifyingExam        String?
+  tenthPercentage       Float?
+  twelfthPercentage     Float?
+  diplomaPercentage     Float?
+  examRank              Int?
+  examRollNumber        String?
 
   // Category & Reservation Preferences
-  category             Category  @default(GEN)
-  subCategory          String?   // e.g., "Ex-Serviceman", "PH", etc.
+  category              Category  @default(GEN)
+  subCategory           String?
 
   // Course & College Preferences
-  preferredCourse      String?
-  preferredLocation    String?   // Preferred district or city (e.g., "Jaipur")
-  preferredCollegeType String?   // "Government", "Private", "Aided"
+  preferredCourse       String?
+  preferredLocation     String?
+  preferredCollegeType  String?
 
-  createdAt            DateTime  @default(now())
-  updatedAt            DateTime  @updatedAt
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
 
   @@index([userId])
   @@index([examRank])
@@ -127,7 +133,7 @@ model ChatMessage {
   session    ChatSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
   senderType SenderType  @default(STUDENT)
   content    String      @db.Text
-  sources    Json?       // Structured citation metadata: [{ document_name, page_number, source_path }]
+  sources    Json?       // Structured citation metadata
   createdAt  DateTime    @default(now())
 
   @@index([sessionId])
@@ -139,22 +145,25 @@ model ChatMessage {
 // ============================================================================
 
 model College {
-  id              Int             @id @default(autoincrement())
-  code            String          @unique // e.g., "GPC_JAIPUR" (matches AI service identifier)
+  id              Int               @id @default(autoincrement())
   name            String
-  location        String          // City / District, e.g., "Jaipur"
+  code            String            @unique
+  type            String            @default("GOVERNMENT") // GOVERNMENT, PRIVATE, AIDED
   district        String?
-  state           String          @default("Rajasthan")
-  type            String          @default("Government") // Government, Private, Aided
-  establishedYear Int?
+  city            String?
+  location        String            @default("Rajasthan")
+  state           String            @default("Rajasthan")
+  address         String?
   website         String?
   contactEmail    String?
   contactPhone    String?
-  address         String?
-  isActive        Boolean         @default(true)
-  createdAt       DateTime        @default(now())
-  updatedAt       DateTime        @updatedAt
+  establishedYear Int?
+  isActive        Boolean           @default(true)
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
 
+  branches        Branch[]
+  admissionCutoffs AdmissionCutoff[]
   cutoffs         CollegeCutoff[]
 
   @@index([code])
@@ -164,18 +173,51 @@ model College {
   @@index([isActive])
 }
 
+model Branch {
+  id            Int               @id @default(autoincrement())
+  name          String
+  code          String
+  durationYears Int               @default(3)
+  seats         Int               @default(60)
+  collegeId     Int
+  college       College           @relation(fields: [collegeId], references: [id], onDelete: Cascade)
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+
+  cutoffs       AdmissionCutoff[]
+
+  @@unique([collegeId, code])
+}
+
+model AdmissionCutoff {
+  id          Int      @id @default(autoincrement())
+  collegeId   Int
+  college     College  @relation(fields: [collegeId], references: [id], onDelete: Cascade)
+  branchId    Int
+  branch      Branch   @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  year        Int
+  category    String
+  cutoffMarks Float?
+  cutoffRank  Int?
+  round       Int      @default(1)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([collegeId, branchId, year, category, round])
+}
+
 model CollegeCutoff {
   id            Int      @id @default(autoincrement())
   collegeId     Int
   college       College  @relation(fields: [collegeId], references: [id], onDelete: Cascade)
-  courseName    String   // e.g., "Civil Engineering"
-  category      Category // GEN, OBC, SC, ST, EWS, MBC, TFWS, PWD
-  admissionYear Int      // e.g., 2024
+  courseName    String
+  category      Category
+  admissionYear Int
   openingRank   Int
   closingRank   Int
   round         Int      @default(1)
-  source        String   // e.g., "DTE Rajasthan Official Cutoff 2024"
-  sourceYear    Int      // e.g., 2024
+  source        String
+  sourceYear    Int
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 

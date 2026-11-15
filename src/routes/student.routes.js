@@ -1,13 +1,13 @@
 const express = require("express");
+const bcrypt = require("bcrypt");
+const prisma = require("../lib/prisma");
 const authenticateToken = require("../middleware/auth.middleware");
+const requireAdmin = require("../middleware/admin.middleware");
 const { requireSelfOrAdmin } = require("../middleware/rbac.middleware");
 const profileService = require("../services/studentProfile.service");
 
 const router = express.Router();
 
-/**
- * Valid reservation categories matching the database schema enum
- */
 const VALID_CATEGORIES = new Set([
   "GEN",
   "OBC",
@@ -19,9 +19,6 @@ const VALID_CATEGORIES = new Set([
   "PWD",
 ]);
 
-/**
- * Validates and sanitizes incoming student profile payload
- */
 function validateProfileInput(body) {
   const errors = [];
 
@@ -62,7 +59,7 @@ function validateProfileInput(body) {
 
 // -------------------------------------------------------------
 // 1. GET LOGGED-IN STUDENT PROFILE
-// Endpoint: GET /api/student/profile
+// Endpoint: GET /api/student/profile or GET /api/students/profile
 // -------------------------------------------------------------
 router.get("/profile", authenticateToken, async (req, res, next) => {
   try {
@@ -71,12 +68,13 @@ router.get("/profile", authenticateToken, async (req, res, next) => {
     if (!profile) {
       return res.status(404).json({
         success: false,
-        message: "Student profile not found. Please create your profile first.",
+        message: "Student profile not found",
       });
     }
 
     return res.status(200).json({
       success: true,
+      message: "Student profile retrieved successfully",
       profile,
     });
   } catch (error) {
@@ -85,7 +83,7 @@ router.get("/profile", authenticateToken, async (req, res, next) => {
 });
 
 // -------------------------------------------------------------
-// 2. CREATE OR UPDATE LOGGED-IN STUDENT PROFILE
+// 2. CREATE OR UPSERT LOGGED-IN STUDENT PROFILE
 // Endpoint: POST /api/student/profile
 // -------------------------------------------------------------
 router.post("/profile", authenticateToken, async (req, res, next) => {
@@ -99,7 +97,6 @@ router.post("/profile", authenticateToken, async (req, res, next) => {
       });
     }
 
-    // Never trust role supplied in profile payload
     const profile = await profileService.upsertProfile(req.user.id, req.user, req.body);
 
     return res.status(200).json({
@@ -159,6 +156,135 @@ router.get("/profile/:userId", authenticateToken, requireSelfOrAdmin("userId"), 
       success: true,
       profile,
     });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// -------------------------------------------------------------
+// 5. ADMIN STUDENT MANAGEMENT (Called by React StudentPage)
+// -------------------------------------------------------------
+router.get("/", authenticateToken, async (req, res, next) => {
+  try {
+    const { search = "", page = 1, limit = 10, district, state } = req.query;
+    const pageNum = Math.max(1, parseInt(page, 10) || 1);
+    const limitNum = Math.max(1, Math.min(100, parseInt(limit, 10) || 10));
+    const skip = (pageNum - 1) * limitNum;
+
+    const where = {};
+    if (search && search.trim()) {
+      where.OR = [
+        { name: { contains: search.trim(), mode: "insensitive" } },
+        { email: { contains: search.trim(), mode: "insensitive" } },
+      ];
+    }
+
+    const [total, students] = await Promise.all([
+      prisma.user.count({ where }),
+      prisma.user.findMany({
+        where,
+        skip,
+        take: limitNum,
+        include: { profile: true },
+        orderBy: { createdAt: "desc" },
+      }),
+    ]);
+
+    return res.status(200).json({
+      success: true,
+      data: students.map((s) => ({
+        id: s.id,
+        name: s.name,
+        email: s.email,
+        role: s.role,
+        createdAt: s.createdAt,
+        profile: s.profile,
+      })),
+      pagination: {
+        page: pageNum,
+        limit: limitNum,
+        total,
+        totalPages: Math.ceil(total / limitNum),
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.post("/", authenticateToken, requireAdmin, async (req, res, next) => {
+  try {
+    const { name, email, password } = req.body;
+    if (!name || !email || !password) {
+      return res.status(400).json({
+        success: false,
+        message: "Name, email, and password are required",
+      });
+    }
+
+    const hashedPassword = await bcrypt.hash(password, 10);
+    const newUser = await prisma.user.create({
+      data: {
+        name,
+        email,
+        password: hashedPassword,
+        role: "STUDENT",
+      },
+    });
+
+    return res.status(201).json({
+      success: true,
+      message: "Student created successfully",
+      student: { id: newUser.id, name: newUser.name, email: newUser.email },
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.get("/:id", authenticateToken, async (req, res, next) => {
+  try {
+    const id = parseInt(req.params.id, 10);
+    if (isNaN(id)) {
+      return res.status(400).json({ success: false, message: "Invalid ID" });
+    }
+
+    const user = await prisma.user.findUnique({
+      where: { id },
+      include: { profile: true },
+    });
+
+    if (!user) {
+      return res.status(404).json({ success: false, message: "Student not found" });
+    }
+
+    return res.status(200).json({ success: true, student: user });
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.put("/:id", authenticateToken, requireAdmin, async (req, res, next) => {
+  try {
+    const id = parseInt(req.params.id, 10);
+    const { name, email } = req.body;
+
+    const updated = await prisma.user.update({
+      where: { id },
+      data: { name, email },
+    });
+
+    return res.status(200).json({ success: true, student: updated });
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.delete("/:id", authenticateToken, requireAdmin, async (req, res, next) => {
+  try {
+    const id = parseInt(req.params.id, 10);
+    await prisma.user.delete({ where: { id } });
+    return res.status(200).json({ success: true, message: "Student deleted" });
   } catch (error) {
     next(error);
   }
