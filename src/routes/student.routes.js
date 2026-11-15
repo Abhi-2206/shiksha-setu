@@ -57,6 +57,55 @@ function validateProfileInput(body) {
   return errors;
 }
 
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+function validateStudentCreationInput(body) {
+  const errors = [];
+
+  if (!body || typeof body !== "object") {
+    return ["Request body must be a JSON object"];
+  }
+
+  // 1. Name validation
+  if (body.name === undefined || body.name === null) {
+    errors.push("Name is required");
+  } else if (typeof body.name !== "string") {
+    errors.push("Name must be a string");
+  } else if (!body.name.trim()) {
+    errors.push("Name cannot be empty or whitespace-only");
+  } else if (body.name.trim().length < 2) {
+    errors.push("Name must be at least 2 characters long");
+  } else if (body.name.trim().length > 100) {
+    errors.push("Name cannot exceed 100 characters");
+  }
+
+  // 2. Email validation
+  if (body.email === undefined || body.email === null) {
+    errors.push("Email is required");
+  } else if (typeof body.email !== "string") {
+    errors.push("Email must be a string");
+  } else if (!body.email.trim()) {
+    errors.push("Email cannot be empty");
+  } else if (!EMAIL_REGEX.test(body.email.trim())) {
+    errors.push("Invalid email format");
+  }
+
+  // 3. Password validation
+  if (body.password === undefined || body.password === null) {
+    errors.push("Password is required");
+  } else if (typeof body.password !== "string") {
+    errors.push("Password must be a string");
+  } else if (!body.password) {
+    errors.push("Password cannot be empty");
+  } else if (body.password.length < 6) {
+    errors.push("Password must be at least 6 characters long");
+  } else if (body.password.length > 128) {
+    errors.push("Password cannot exceed 128 characters");
+  }
+
+  return errors;
+}
+
 // -------------------------------------------------------------
 // 1. GET LOGGED-IN STUDENT PROFILE
 // Endpoint: GET /api/student/profile or GET /api/students/profile
@@ -214,19 +263,24 @@ router.get("/", authenticateToken, requireAdmin, async (req, res, next) => {
 
 router.post("/", authenticateToken, requireAdmin, async (req, res, next) => {
   try {
-    const { name, email, password } = req.body;
-    if (!name || !email || !password) {
+    const validationErrors = validateStudentCreationInput(req.body);
+    if (validationErrors.length > 0) {
       return res.status(400).json({
         success: false,
-        message: "Name, email, and password are required",
+        message: "Validation failed",
+        errors: validationErrors,
       });
     }
+
+    const { name, email, password } = req.body;
+    const trimmedName = name.trim();
+    const normalizedEmail = email.trim().toLowerCase();
 
     const hashedPassword = await bcrypt.hash(password, 10);
     const newUser = await prisma.user.create({
       data: {
-        name,
-        email,
+        name: trimmedName,
+        email: normalizedEmail,
         password: hashedPassword,
         role: "STUDENT",
       },

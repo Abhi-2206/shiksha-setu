@@ -333,6 +333,230 @@ describe("Backend API Integration Tests", () => {
       assert.strictEqual(data.success, false);
       assert.strictEqual(data.message, "Student not found");
     });
+
+    // ==========================================================================
+    // Student Creation Validation Tests (Contribution 2)
+    // ==========================================================================
+    it("POST /api/students should reject unauthenticated request (401)", async () => {
+      const res = await fetch(`${baseUrl}/api/students`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: "Direct Student",
+          email: "direct.student@example.com",
+          password: "Password123!",
+        }),
+      });
+      assert.strictEqual(res.status, 401);
+    });
+
+    it("POST /api/students should reject student token with 403", async () => {
+      const res = await fetch(`${baseUrl}/api/students`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${studentToken}`,
+        },
+        body: JSON.stringify({
+          name: "Direct Student",
+          email: "student.denied@example.com",
+          password: "Password123!",
+        }),
+      });
+      assert.strictEqual(res.status, 403);
+      const data = await res.json();
+      assert.strictEqual(data.success, false);
+      assert.match(data.message, /Admin role required/i);
+    });
+
+    it("POST /api/students should reject missing name (400)", async () => {
+      const res = await fetch(`${baseUrl}/api/students`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${adminToken}`,
+        },
+        body: JSON.stringify({
+          email: "missing.name@example.com",
+          password: "Password123!",
+        }),
+      });
+      assert.strictEqual(res.status, 400);
+      const data = await res.json();
+      assert.strictEqual(data.success, false);
+      assert.strictEqual(data.message, "Validation failed");
+      assert.ok(Array.isArray(data.errors));
+      assert.ok(data.errors.some((e) => /name/i.test(e)));
+    });
+
+    it("POST /api/students should reject missing email (400)", async () => {
+      const res = await fetch(`${baseUrl}/api/students`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${adminToken}`,
+        },
+        body: JSON.stringify({
+          name: "Missing Email",
+          password: "Password123!",
+        }),
+      });
+      assert.strictEqual(res.status, 400);
+      const data = await res.json();
+      assert.strictEqual(data.success, false);
+      assert.strictEqual(data.message, "Validation failed");
+      assert.ok(Array.isArray(data.errors));
+      assert.ok(data.errors.some((e) => /email/i.test(e)));
+    });
+
+    it("POST /api/students should reject missing password (400)", async () => {
+      const res = await fetch(`${baseUrl}/api/students`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${adminToken}`,
+        },
+        body: JSON.stringify({
+          name: "Missing Password",
+          email: "missing.password@example.com",
+        }),
+      });
+      assert.strictEqual(res.status, 400);
+      const data = await res.json();
+      assert.strictEqual(data.success, false);
+      assert.strictEqual(data.message, "Validation failed");
+      assert.ok(Array.isArray(data.errors));
+      assert.ok(data.errors.some((e) => /password/i.test(e)));
+    });
+
+    it("POST /api/students should reject whitespace-only name (400)", async () => {
+      const res = await fetch(`${baseUrl}/api/students`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${adminToken}`,
+        },
+        body: JSON.stringify({
+          name: "     ",
+          email: "whitespace.name@example.com",
+          password: "Password123!",
+        }),
+      });
+      assert.strictEqual(res.status, 400);
+      const data = await res.json();
+      assert.strictEqual(data.success, false);
+      assert.strictEqual(data.message, "Validation failed");
+      assert.ok(data.errors.some((e) => /name/i.test(e)));
+    });
+
+    it("POST /api/students should reject invalid email format (400)", async () => {
+      const res = await fetch(`${baseUrl}/api/students`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${adminToken}`,
+        },
+        body: JSON.stringify({
+          name: "Invalid Email Format",
+          email: "not-an-email-at-all",
+          password: "Password123!",
+        }),
+      });
+      assert.strictEqual(res.status, 400);
+      const data = await res.json();
+      assert.strictEqual(data.success, false);
+      assert.strictEqual(data.message, "Validation failed");
+      assert.ok(data.errors.some((e) => /email/i.test(e)));
+    });
+
+    it("POST /api/students should reject non-string name or email (400)", async () => {
+      const res = await fetch(`${baseUrl}/api/students`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${adminToken}`,
+        },
+        body: JSON.stringify({
+          name: 99999,
+          email: true,
+          password: "Password123!",
+        }),
+      });
+      assert.strictEqual(res.status, 400);
+      const data = await res.json();
+      assert.strictEqual(data.success, false);
+      assert.strictEqual(data.message, "Validation failed");
+      assert.ok(data.errors.some((e) => /name/i.test(e)));
+      assert.ok(data.errors.some((e) => /email/i.test(e)));
+    });
+
+    it("POST /api/students should reject password below minimum length of 6 characters (400)", async () => {
+      const res = await fetch(`${baseUrl}/api/students`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${adminToken}`,
+        },
+        body: JSON.stringify({
+          name: "Short Pass",
+          email: "short.pass@example.com",
+          password: "123",
+        }),
+      });
+      assert.strictEqual(res.status, 400);
+      const data = await res.json();
+      assert.strictEqual(data.success, false);
+      assert.strictEqual(data.message, "Validation failed");
+      assert.ok(data.errors.some((e) => /password/i.test(e)));
+    });
+
+    it("POST /api/students should allow admin to create student with valid inputs (201)", async () => {
+      const res = await fetch(`${baseUrl}/api/students`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${adminToken}`,
+        },
+        body: JSON.stringify({
+          name: "  Rohan Gupta  ",
+          email: "  ROHAN.GUPTA@example.com  ",
+          password: "SecurePassword123!",
+        }),
+      });
+      assert.strictEqual(res.status, 201);
+      const data = await res.json();
+      assert.strictEqual(data.success, true);
+      assert.strictEqual(data.message, "Student created successfully");
+      assert.strictEqual(data.student.name, "Rohan Gupta");
+      assert.strictEqual(data.student.email, "rohan.gupta@example.com");
+      assert.ok(data.student.id);
+    });
+
+    it("POST /api/students should reject role override attempts and enforce STUDENT role", async () => {
+      const res = await fetch(`${baseUrl}/api/students`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${adminToken}`,
+        },
+        body: JSON.stringify({
+          name: "Sneha Patel",
+          email: "sneha.patel@example.com",
+          password: "SecurePassword123!",
+          role: "ADMIN",
+          id: 7777,
+        }),
+      });
+      assert.strictEqual(res.status, 201);
+      const data = await res.json();
+      assert.strictEqual(data.success, true);
+      assert.notStrictEqual(data.student.id, 7777);
+
+      const createdUser = await prisma.user.findUnique({
+        where: { id: data.student.id },
+      });
+      assert.strictEqual(createdUser.role, "STUDENT");
+    });
   });
 
   // ==========================================================================
