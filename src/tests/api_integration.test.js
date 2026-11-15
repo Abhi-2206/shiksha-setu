@@ -1052,6 +1052,298 @@ describe("Backend API Integration Tests", () => {
       assert.strictEqual(data.success, false);
       assert.match(data.message, /unique constraint violation/i);
     });
+
+    // ==========================================================================
+    // College Update API (PUT /api/colleges/:id) Tests
+    // ==========================================================================
+    it("PUT /api/colleges/:id should reject unauthenticated request (401)", async () => {
+      const res = await fetch(`${baseUrl}/api/colleges/${createdCollegeId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: "Unauth Update" }),
+      });
+      assert.strictEqual(res.status, 401);
+    });
+
+    it("PUT /api/colleges/:id should reject student request (403)", async () => {
+      const res = await fetch(`${baseUrl}/api/colleges/${createdCollegeId}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${studentToken}`,
+        },
+        body: JSON.stringify({ name: "Student Update" }),
+      });
+      assert.strictEqual(res.status, 403);
+    });
+
+    it("PUT /api/colleges/:id should reject invalid college ID formats (400)", async () => {
+      const invalidIds = ["not-a-number", "0", "-5", "1.5", "999999999999999999999999999999999999999999"];
+      for (const id of invalidIds) {
+        const res = await fetch(`${baseUrl}/api/colleges/${id}`, {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${adminToken}`,
+          },
+          body: JSON.stringify({ name: "Valid Name" }),
+        });
+        assert.strictEqual(res.status, 400, `Expected 400 for college ID '${id}'`);
+        const data = await res.json();
+        assert.strictEqual(data.success, false);
+        assert.strictEqual(data.message, "Invalid college ID");
+      }
+    });
+
+    it("PUT /api/colleges/:id should return 404 for non-existent college", async () => {
+      const res = await fetch(`${baseUrl}/api/colleges/999999`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${adminToken}`,
+        },
+        body: JSON.stringify({ name: "Nonexistent College" }),
+      });
+      assert.strictEqual(res.status, 404);
+      const data = await res.json();
+      assert.strictEqual(data.success, false);
+      assert.strictEqual(data.message, "College not found");
+    });
+
+    it("PUT /api/colleges/:id should reject null and array request bodies (400)", async () => {
+      for (const invalidBody of [null, []]) {
+        const res = await fetch(`${baseUrl}/api/colleges/${createdCollegeId}`, {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${adminToken}`,
+          },
+          body: JSON.stringify(invalidBody),
+        });
+        assert.strictEqual(res.status, 400);
+        const data = await res.json();
+        assert.strictEqual(data.success, false);
+        assert.strictEqual(data.message, "Validation failed");
+        assert.ok(data.errors.some((e) => /JSON object/i.test(e)));
+      }
+    });
+
+    it("PUT /api/colleges/:id should reject empty request body (400)", async () => {
+      const res = await fetch(`${baseUrl}/api/colleges/${createdCollegeId}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${adminToken}`,
+        },
+        body: JSON.stringify({}),
+      });
+      assert.strictEqual(res.status, 400);
+      const data = await res.json();
+      assert.strictEqual(data.success, false);
+      assert.strictEqual(data.message, "Validation failed");
+      assert.ok(data.errors.some((e) => /empty/i.test(e)));
+    });
+
+    it("PUT /api/colleges/:id should reject system-managed and relationship fields (400)", async () => {
+      const restrictedPayloads = [
+        { id: 999 },
+        { createdAt: new Date().toISOString() },
+        { updatedAt: new Date().toISOString() },
+        { branches: [] },
+        { cutoffs: [] },
+      ];
+
+      for (const payload of restrictedPayloads) {
+        const res = await fetch(`${baseUrl}/api/colleges/${createdCollegeId}`, {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${adminToken}`,
+          },
+          body: JSON.stringify(payload),
+        });
+        assert.strictEqual(res.status, 400);
+        const data = await res.json();
+        assert.strictEqual(data.success, false);
+        assert.strictEqual(data.message, "Validation failed");
+        assert.ok(data.errors.some((e) => /system-managed/i.test(e)));
+      }
+    });
+
+    it("PUT /api/colleges/:id should reject unknown fields (400)", async () => {
+      const res = await fetch(`${baseUrl}/api/colleges/${createdCollegeId}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${adminToken}`,
+        },
+        body: JSON.stringify({ unknownField: "unexpectedValue" }),
+      });
+      assert.strictEqual(res.status, 400);
+      const data = await res.json();
+      assert.strictEqual(data.success, false);
+      assert.strictEqual(data.message, "Validation failed");
+      assert.ok(data.errors.some((e) => /unknown field/i.test(e)));
+    });
+
+    it("PUT /api/colleges/:id should reject whitespace-only required strings (400)", async () => {
+      const res = await fetch(`${baseUrl}/api/colleges/${createdCollegeId}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${adminToken}`,
+        },
+        body: JSON.stringify({ name: "   ", code: "   " }),
+      });
+      assert.strictEqual(res.status, 400);
+      const data = await res.json();
+      assert.strictEqual(data.success, false);
+      assert.strictEqual(data.message, "Validation failed");
+      assert.ok(data.errors.some((e) => /name/i.test(e)));
+      assert.ok(data.errors.some((e) => /code/i.test(e)));
+    });
+
+    it("PUT /api/colleges/:id should reject invalid field types (400)", async () => {
+      const res = await fetch(`${baseUrl}/api/colleges/${createdCollegeId}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${adminToken}`,
+        },
+        body: JSON.stringify({ name: 12345, location: false }),
+      });
+      assert.strictEqual(res.status, 400);
+      const data = await res.json();
+      assert.strictEqual(data.success, false);
+      assert.strictEqual(data.message, "Validation failed");
+      assert.ok(data.errors.some((e) => /name/i.test(e)));
+      assert.ok(data.errors.some((e) => /location/i.test(e)));
+    });
+
+    it("PUT /api/colleges/:id should reject invalid establishedYear and contactEmail (400)", async () => {
+      const res = await fetch(`${baseUrl}/api/colleges/${createdCollegeId}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${adminToken}`,
+        },
+        body: JSON.stringify({
+          establishedYear: 1750,
+          contactEmail: "invalid-email-address",
+        }),
+      });
+      assert.strictEqual(res.status, 400);
+      const data = await res.json();
+      assert.strictEqual(data.success, false);
+      assert.strictEqual(data.message, "Validation failed");
+      assert.ok(data.errors.some((e) => /establishedYear/i.test(e)));
+      assert.ok(data.errors.some((e) => /contactEmail/i.test(e)));
+    });
+
+    it("PUT /api/colleges/:id should perform valid single-field partial update (200)", async () => {
+      const res = await fetch(`${baseUrl}/api/colleges/${createdCollegeId}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${adminToken}`,
+        },
+        body: JSON.stringify({
+          name: "Government Polytechnic College, Kota (Updated)",
+        }),
+      });
+      assert.strictEqual(res.status, 200);
+      const data = await res.json();
+      assert.strictEqual(data.success, true);
+      assert.strictEqual(data.message, "College updated successfully");
+      assert.strictEqual(data.college.name, "Government Polytechnic College, Kota (Updated)");
+      assert.strictEqual(data.college.code, "GPC_KOTA");
+    });
+
+    it("PUT /api/colleges/:id should perform valid multiple-field partial update (200)", async () => {
+      const res = await fetch(`${baseUrl}/api/colleges/${createdCollegeId}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${adminToken}`,
+        },
+        body: JSON.stringify({
+          district: "Kota District",
+          city: "Kota City",
+          website: "https://gpckota.ac.in",
+          contactEmail: "info@gpckota.ac.in",
+          establishedYear: 1962,
+        }),
+      });
+      assert.strictEqual(res.status, 200);
+      const data = await res.json();
+      assert.strictEqual(data.success, true);
+      assert.strictEqual(data.college.district, "Kota District");
+      assert.strictEqual(data.college.city, "Kota City");
+      assert.strictEqual(data.college.website, "https://gpckota.ac.in");
+      assert.strictEqual(data.college.contactEmail, "info@gpckota.ac.in");
+      assert.strictEqual(data.college.establishedYear, 1962);
+    });
+
+    it("PUT /api/colleges/:id should strictly validate isActive and preserve false (200)", async () => {
+      // 1. Non-boolean string 'false' should be rejected with 400
+      const invalidRes = await fetch(`${baseUrl}/api/colleges/${createdCollegeId}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${adminToken}`,
+        },
+        body: JSON.stringify({ isActive: "false" }),
+      });
+      assert.strictEqual(invalidRes.status, 400);
+      const invalidData = await invalidRes.json();
+      assert.ok(invalidData.errors.some((e) => /isActive must be a boolean/i.test(e)));
+
+      // 2. Strict boolean false should update successfully
+      const validRes = await fetch(`${baseUrl}/api/colleges/${createdCollegeId}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${adminToken}`,
+        },
+        body: JSON.stringify({ isActive: false }),
+      });
+      assert.strictEqual(validRes.status, 200);
+      const validData = await validRes.json();
+      assert.strictEqual(validData.success, true);
+      assert.strictEqual(validData.college.isActive, false);
+    });
+
+    it("PUT /api/colleges/:id should reject duplicate college code with 409", async () => {
+      // 1. Create a second college
+      const secondCollegeRes = await fetch(`${baseUrl}/api/colleges`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${adminToken}`,
+        },
+        body: JSON.stringify({
+          code: "GPC_JAIPUR",
+          name: "Government Polytechnic College, Jaipur",
+          location: "Jaipur",
+        }),
+      });
+      assert.strictEqual(secondCollegeRes.status, 201);
+      const secondCollege = (await secondCollegeRes.json()).college;
+
+      // 2. Attempt to update second college code to first college code ('GPC_KOTA')
+      const duplicateRes = await fetch(`${baseUrl}/api/colleges/${secondCollege.id}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${adminToken}`,
+        },
+        body: JSON.stringify({ code: "GPC_KOTA" }),
+      });
+      assert.strictEqual(duplicateRes.status, 409);
+      const duplicateData = await duplicateRes.json();
+      assert.strictEqual(duplicateData.success, false);
+      assert.match(duplicateData.message, /unique constraint violation/i);
+    });
   });
 
   // ==========================================================================

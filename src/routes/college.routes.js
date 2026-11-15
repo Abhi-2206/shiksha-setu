@@ -142,20 +142,260 @@ router.post("/", authenticateToken, requireAdmin, async (req, res, next) => {
   }
 });
 
+const RESTRICTED_COLLEGE_FIELDS = new Set([
+  "id",
+  "createdAt",
+  "updatedAt",
+  "branches",
+  "cutoffs",
+  "admissionCutoffs",
+]);
+
+const ALLOWED_COLLEGE_UPDATE_FIELDS = new Set([
+  "name",
+  "code",
+  "type",
+  "district",
+  "city",
+  "location",
+  "state",
+  "address",
+  "website",
+  "contactEmail",
+  "contactPhone",
+  "establishedYear",
+  "isActive",
+]);
+
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+function validateCollegeUpdateInput(body) {
+  const errors = [];
+
+  if (!body || typeof body !== "object" || Array.isArray(body)) {
+    return ["Request body must be a JSON object"];
+  }
+
+  const keys = Object.keys(body);
+  if (keys.length === 0) {
+    return ["Request body cannot be empty; at least one editable field must be provided"];
+  }
+
+  for (const key of keys) {
+    if (RESTRICTED_COLLEGE_FIELDS.has(key)) {
+      errors.push(`Field '${key}' is system-managed and cannot be modified`);
+    } else if (!ALLOWED_COLLEGE_UPDATE_FIELDS.has(key)) {
+      errors.push(`Unknown field '${key}'`);
+    }
+  }
+
+  // 1. name validation
+  if (body.name !== undefined) {
+    if (body.name === null || typeof body.name !== "string") {
+      errors.push("name must be a string");
+    } else if (!body.name.trim()) {
+      errors.push("name cannot be empty or whitespace-only");
+    } else if (body.name.trim().length < 2) {
+      errors.push("name must be at least 2 characters long");
+    } else if (body.name.trim().length > 200) {
+      errors.push("name cannot exceed 200 characters");
+    }
+  }
+
+  // 2. code validation
+  if (body.code !== undefined) {
+    if (body.code === null || typeof body.code !== "string") {
+      errors.push("code must be a string");
+    } else if (!body.code.trim()) {
+      errors.push("code cannot be empty or whitespace-only");
+    } else if (body.code.trim().length < 2) {
+      errors.push("code must be at least 2 characters long");
+    } else if (body.code.trim().length > 50) {
+      errors.push("code cannot exceed 50 characters");
+    }
+  }
+
+  // 3. type validation
+  if (body.type !== undefined) {
+    if (body.type === null || typeof body.type !== "string") {
+      errors.push("type must be a string");
+    } else if (!body.type.trim()) {
+      errors.push("type cannot be empty or whitespace-only");
+    } else if (body.type.trim().length > 50) {
+      errors.push("type cannot exceed 50 characters");
+    }
+  }
+
+  // 4. location validation
+  if (body.location !== undefined) {
+    if (body.location === null || typeof body.location !== "string") {
+      errors.push("location must be a string");
+    } else if (!body.location.trim()) {
+      errors.push("location cannot be empty or whitespace-only");
+    } else if (body.location.trim().length > 100) {
+      errors.push("location cannot exceed 100 characters");
+    }
+  }
+
+  // 5. state validation
+  if (body.state !== undefined) {
+    if (body.state === null || typeof body.state !== "string") {
+      errors.push("state must be a string");
+    } else if (!body.state.trim()) {
+      errors.push("state cannot be empty or whitespace-only");
+    } else if (body.state.trim().length > 100) {
+      errors.push("state cannot exceed 100 characters");
+    }
+  }
+
+  // 6. district validation (nullable)
+  if (body.district !== undefined && body.district !== null) {
+    if (typeof body.district !== "string") {
+      errors.push("district must be a string or null");
+    } else if (!body.district.trim()) {
+      errors.push("district cannot be empty or whitespace-only");
+    } else if (body.district.trim().length > 100) {
+      errors.push("district cannot exceed 100 characters");
+    }
+  }
+
+  // 7. city validation (nullable)
+  if (body.city !== undefined && body.city !== null) {
+    if (typeof body.city !== "string") {
+      errors.push("city must be a string or null");
+    } else if (!body.city.trim()) {
+      errors.push("city cannot be empty or whitespace-only");
+    } else if (body.city.trim().length > 100) {
+      errors.push("city cannot exceed 100 characters");
+    }
+  }
+
+  // 8. address validation (nullable)
+  if (body.address !== undefined && body.address !== null) {
+    if (typeof body.address !== "string") {
+      errors.push("address must be a string or null");
+    } else if (!body.address.trim()) {
+      errors.push("address cannot be empty or whitespace-only");
+    } else if (body.address.trim().length > 255) {
+      errors.push("address cannot exceed 255 characters");
+    }
+  }
+
+  // 9. website validation (nullable)
+  if (body.website !== undefined && body.website !== null) {
+    if (typeof body.website !== "string") {
+      errors.push("website must be a string or null");
+    } else if (!body.website.trim()) {
+      errors.push("website cannot be empty or whitespace-only");
+    } else if (body.website.trim().length > 255) {
+      errors.push("website cannot exceed 255 characters");
+    }
+  }
+
+  // 10. contactPhone validation (nullable)
+  if (body.contactPhone !== undefined && body.contactPhone !== null) {
+    if (typeof body.contactPhone !== "string") {
+      errors.push("contactPhone must be a string or null");
+    } else if (!body.contactPhone.trim()) {
+      errors.push("contactPhone cannot be empty or whitespace-only");
+    } else if (body.contactPhone.trim().length > 25) {
+      errors.push("contactPhone cannot exceed 25 characters");
+    }
+  }
+
+  // 11. contactEmail validation (nullable)
+  if (body.contactEmail !== undefined && body.contactEmail !== null) {
+    if (typeof body.contactEmail !== "string") {
+      errors.push("contactEmail must be a string or null");
+    } else if (!body.contactEmail.trim()) {
+      errors.push("contactEmail cannot be empty or whitespace-only");
+    } else if (!EMAIL_REGEX.test(body.contactEmail.trim())) {
+      errors.push("Invalid contactEmail format");
+    } else if (body.contactEmail.trim().length > 100) {
+      errors.push("contactEmail cannot exceed 100 characters");
+    }
+  }
+
+  // 12. establishedYear validation (nullable integer)
+  if (body.establishedYear !== undefined && body.establishedYear !== null) {
+    if (!isStrictInteger(body.establishedYear)) {
+      errors.push("establishedYear must be an integer between 1800 and next year");
+    } else {
+      const year = typeof body.establishedYear === "number"
+        ? body.establishedYear
+        : parseInt(body.establishedYear.trim(), 10);
+      const currentYear = new Date().getFullYear();
+      if (year < 1800 || year > currentYear + 1) {
+        errors.push(`establishedYear must be an integer between 1800 and ${currentYear + 1}`);
+      }
+    }
+  }
+
+  // 13. isActive validation (boolean strictly)
+  if (body.isActive !== undefined) {
+    if (typeof body.isActive !== "boolean") {
+      errors.push("isActive must be a boolean");
+    }
+  }
+
+  return errors;
+}
+
 // -------------------------------------------------------------
 // 4. UPDATE COLLEGE (Admin Only)
 // Endpoint: PUT /api/colleges/:id
 // -------------------------------------------------------------
 router.put("/:id", authenticateToken, requireAdmin, async (req, res, next) => {
   try {
-    const collegeId = parseInt(req.params.id, 10);
-    if (isNaN(collegeId)) {
+    const rawId = req.params.id;
+    const collegeId = Number(rawId);
+    if (!Number.isSafeInteger(collegeId) || collegeId <= 0 || !/^\d+$/.test(String(rawId || "").trim())) {
       return res.status(400).json({ success: false, message: "Invalid college ID" });
     }
 
+    const existingCollege = await prisma.college.findUnique({
+      where: { id: collegeId },
+    });
+
+    if (!existingCollege) {
+      return res.status(404).json({
+        success: false,
+        message: "College not found",
+      });
+    }
+
+    const validationErrors = validateCollegeUpdateInput(req.body);
+    if (validationErrors.length > 0) {
+      return res.status(400).json({
+        success: false,
+        message: "Validation failed",
+        errors: validationErrors,
+      });
+    }
+
+    const body = req.body;
+    const updateData = {};
+    if (body.name !== undefined) updateData.name = body.name.trim();
+    if (body.code !== undefined) updateData.code = body.code.trim().toUpperCase();
+    if (body.type !== undefined) updateData.type = body.type.trim().toUpperCase();
+    if (body.location !== undefined) updateData.location = body.location.trim();
+    if (body.district !== undefined) updateData.district = body.district === null ? null : body.district.trim();
+    if (body.city !== undefined) updateData.city = body.city === null ? null : body.city.trim();
+    if (body.state !== undefined) updateData.state = body.state.trim();
+    if (body.address !== undefined) updateData.address = body.address === null ? null : body.address.trim();
+    if (body.website !== undefined) updateData.website = body.website === null ? null : body.website.trim();
+    if (body.contactEmail !== undefined) updateData.contactEmail = body.contactEmail === null ? null : body.contactEmail.trim();
+    if (body.contactPhone !== undefined) updateData.contactPhone = body.contactPhone === null ? null : body.contactPhone.trim();
+    if (body.establishedYear !== undefined) {
+      updateData.establishedYear = body.establishedYear === null
+        ? null
+        : (typeof body.establishedYear === "number" ? body.establishedYear : parseInt(body.establishedYear.trim(), 10));
+    }
+    if (body.isActive !== undefined) updateData.isActive = body.isActive;
+
     const updated = await prisma.college.update({
       where: { id: collegeId },
-      data: req.body,
+      data: updateData,
     });
 
     return res.status(200).json({
@@ -164,6 +404,13 @@ router.put("/:id", authenticateToken, requireAdmin, async (req, res, next) => {
       college: updated,
     });
   } catch (error) {
+    if (error.code === "P2002") {
+      return res.status(409).json({
+        success: false,
+        message: "A unique constraint violation occurred in the database.",
+        fields: error.meta?.target || null,
+      });
+    }
     next(error);
   }
 });
