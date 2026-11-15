@@ -94,11 +94,91 @@
   border-radius: 4px;
   cursor: pointer;
   transition: background-color 0.2s, color 0.2s;
+  text-decoration: none;
 }
 
 .login-btn:hover {
   background-color: #b8972c;
   color: #FFFFFF;
+}
+
+/* Logged-in User Menu */
+.navbar-user-menu {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.navbar-user-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 10px 4px 4px;
+  background-color: #F8F9FA;
+  border: 1px solid #E2E2E2;
+  border-radius: 20px;
+}
+
+.navbar-user-avatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background-color: #1A365D;
+  color: #FFFFFF;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.navbar-user-text {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.2;
+}
+
+.navbar-user-name {
+  font-size: 12px;
+  font-weight: 600;
+  color: #252525;
+  max-width: 120px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.navbar-user-role {
+  font-size: 9px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.role-admin {
+  color: #C53030;
+}
+
+.role-student {
+  color: #2B6CB0;
+}
+
+.navbar-logout-btn {
+  padding: 6px 14px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #555555;
+  background-color: #FFFFFF;
+  border: 1px solid #CBD5E0;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.navbar-logout-btn:hover {
+  color: #C53030;
+  border-color: #FEB2B2;
+  background-color: #FFF5F5;
 }
 
 /* Mobile responsive menu */
@@ -120,5 +200,9 @@
 
   .nav-item a {
     padding: 10px 12px;
+  }
+
+  .navbar-user-menu {
+    gap: 8px;
   }
 }

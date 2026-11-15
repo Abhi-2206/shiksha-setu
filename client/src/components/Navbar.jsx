@@ -1,9 +1,17 @@
-import React from 'react';
-import { NavLink, Link } from 'react-router-dom';
+import { NavLink, Link, useNavigate } from 'react-router-dom';
+import { useAuth } from '../context/useAuth';
 import './Navbar.css';
 
 // Reusable Navbar component for ShikshaSetu
 function Navbar() {
+  const { user, isAuthenticated, logout } = useAuth();
+  const navigate = useNavigate();
+
+  const handleLogout = async () => {
+    await logout();
+    navigate('/login');
+  };
+
   return (
     <nav className="navbar">
       <div className="navbar-container">
@@ -63,11 +71,35 @@ function Navbar() {
           </li>
         </ul>
 
-        {/* Right: Login Action Button */}
+        {/* Right: Authentication Action */}
         <div className="navbar-actions">
-          <Link to="/login" className="login-btn">
-            Login
-          </Link>
+          {isAuthenticated && user ? (
+            <div className="navbar-user-menu">
+              <div className="navbar-user-info" title={`Signed in as ${user.email} (${user.role})`}>
+                <span className="navbar-user-avatar">
+                  {user.name ? user.name.charAt(0).toUpperCase() : 'U'}
+                </span>
+                <div className="navbar-user-text">
+                  <span className="navbar-user-name">{user.name}</span>
+                  <span className={`navbar-user-role ${user.role === 'ADMIN' ? 'role-admin' : 'role-student'}`}>
+                    {user.role}
+                  </span>
+                </div>
+              </div>
+              <button
+                type="button"
+                className="navbar-logout-btn"
+                onClick={handleLogout}
+                title="Log out of your account"
+              >
+                Logout
+              </button>
+            </div>
+          ) : (
+            <Link to="/login" className="login-btn">
+              Login
+            </Link>
+          )}
         </div>
 
       </div>
