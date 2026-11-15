@@ -164,7 +164,7 @@ router.get("/profile/:userId", authenticateToken, requireSelfOrAdmin("userId"), 
 // -------------------------------------------------------------
 // 5. ADMIN STUDENT MANAGEMENT (Called by React StudentPage)
 // -------------------------------------------------------------
-router.get("/", authenticateToken, async (req, res, next) => {
+router.get("/", authenticateToken, requireAdmin, async (req, res, next) => {
   try {
     const { search = "", page = 1, limit = 10, district, state } = req.query;
     const pageNum = Math.max(1, parseInt(page, 10) || 1);
@@ -242,7 +242,7 @@ router.post("/", authenticateToken, requireAdmin, async (req, res, next) => {
   }
 });
 
-router.get("/:id", authenticateToken, async (req, res, next) => {
+router.get("/:id", authenticateToken, requireAdmin, async (req, res, next) => {
   try {
     const id = parseInt(req.params.id, 10);
     if (isNaN(id)) {
