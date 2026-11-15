@@ -1,13 +1,18 @@
+import { useState } from 'react';
 import { NavLink, Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/useAuth';
 import './Navbar.css';
 
 // Reusable Navbar component for ShikshaSetu with Role-Based Navigation
 function Navbar() {
-  const { user, isAuthenticated, logout } = useAuth();
+  const { user, isAuthenticated, isAdmin, logout } = useAuth();
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const navigate = useNavigate();
 
+  const closeMobile = () => setMobileMenuOpen(false);
+
   const handleLogout = async () => {
+    closeMobile();
     await logout();
     navigate('/login');
   };
