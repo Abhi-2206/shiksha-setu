@@ -40,149 +40,98 @@ enum SenderType {
 // ============================================================================
 
 model User {
-  id           Int             @id @default(autoincrement())
-  name         String
-  email        String          @unique
-  password     String
-  role         Role            @default(STUDENT)
-  createdAt    DateTime        @default(now())
-  updatedAt    DateTime        @updatedAt
-
-  // Relationships
-  profile      StudentProfile?
-  chatSessions ChatSession[]
-
-  @@index([email])
-  @@index([role])
+  id        Int             @id @default(autoincrement())
+  name      String
+  email     String          @unique
+  password  String
+  role      String          @default("STUDENT")
+  createdAt DateTime        @default(now())
+  updatedAt DateTime        @updatedAt
+  profile   StudentProfile?
 }
-
-// ============================================================================
-// Student Profile (Contact, Academics & Admission Preferences)
-// ============================================================================
 
 model StudentProfile {
-  id                   Int       @id @default(autoincrement())
-  userId               Int       @unique
-  user                 User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  // Personal & Contact Information
-  fullName             String?
-  phoneNumber          String?
-  alternatePhone       String?
-  dateOfBirth          DateTime?
-  gender               String?
-  address              String?
-  district             String?
-  state                String?   @default("Rajasthan")
-  pincode              String?
-  isRajasthanDomicile  Boolean   @default(true)
-
-  // Academic Details
-  qualifyingExam       String?   // e.g., "Class 10", "Class 12", "Diploma"
-  tenthPercentage      Float?
-  twelfthPercentage    Float?
-  diplomaPercentage    Float?
-  examRank             Int?      // Merit rank for counseling / cutoffs
-  examRollNumber       String?
-
-  // Category & Reservation Preferences
-  category             Category  @default(GEN)
-  subCategory          String?   // e.g., "Ex-Serviceman", "PH", etc.
-
-  // Course & College Preferences
-  preferredCourse      String?
-  preferredLocation    String?   // Preferred district or city (e.g., "Jaipur")
-  preferredCollegeType String?   // "Government", "Private", "Aided"
-
-  createdAt            DateTime  @default(now())
-  updatedAt            DateTime  @updatedAt
-
-  @@index([userId])
-  @@index([examRank])
-  @@index([category])
-  @@index([preferredLocation])
+  id                    Int       @id @default(autoincrement())
+  userId                Int       @unique
+  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  dateOfBirth           DateTime?
+  gender                String?
+  phoneNumber           String?
+  state                 String?   @default("Rajasthan")
+  district              String?
+  city                  String?
+  currentEducationLevel String?
+  instituteName         String?
+  courseOrStream        String?
+  passingYear           Int?
+  percentageOrCgpa      Float?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
 }
 
-// ============================================================================
-// Chatbot Conversations & Messages
-// ============================================================================
-
-model ChatSession {
-  id        String        @id @default(uuid())
-  userId    Int
-  user      User          @relation(fields: [userId], references: [id], onDelete: Cascade)
-  title     String        @default("New Conversation")
-  createdAt DateTime      @default(now())
-  updatedAt DateTime      @updatedAt
-
-  messages  ChatMessage[]
-
-  @@index([userId])
-  @@index([createdAt])
-}
-
-model ChatMessage {
-  id         Int         @id @default(autoincrement())
-  sessionId  String
-  session    ChatSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
-  senderType SenderType  @default(STUDENT)
-  content    String      @db.Text
-  sources    Json?       // Structured citation metadata: [{ document_name, page_number, source_path }]
-  createdAt  DateTime    @default(now())
-
-  @@index([sessionId])
-  @@index([createdAt])
-}
-
-// ============================================================================
-// Colleges & Cutoffs (Department of Technical Education Rajasthan)
-// ============================================================================
+// -------------------------------------------------------------
+// CP06: College & Branch Models
+// Department of Technical Education, Government of Rajasthan
+// -------------------------------------------------------------
 
 model College {
-  id              Int             @id @default(autoincrement())
-  code            String          @unique // e.g., "GPC_JAIPUR" (matches AI service identifier)
-  name            String
-  location        String          // City / District, e.g., "Jaipur"
-  district        String?
-  state           String          @default("Rajasthan")
-  type            String          @default("Government") // Government, Private, Aided
-  establishedYear Int?
-  website         String?
-  contactEmail    String?
-  contactPhone    String?
-  address         String?
-  isActive        Boolean         @default(true)
-  createdAt       DateTime        @default(now())
-  updatedAt       DateTime        @updatedAt
+  id           Int      @id @default(autoincrement())
+  name         String   // College Name e.g. "Government Polytechnic College, Jaipur"
+  code         String   @unique // Official DTE College Code e.g. "GPC-JPR"
+  type         String   @default("GOVERNMENT") // GOVERNMENT, PRIVATE, AIDED
+  district     String   // Rajasthan District e.g. "Jaipur", "Jodhpur", "Kota"
+  city         String   // City name
+  address      String?  // Full street address
+  website      String?  // Official college website
+  contactEmail String?  // Contact email for admissions/helpdesk
+  contactPhone String?  // Contact telephone / mobile
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 
-  cutoffs         CollegeCutoff[]
+  // 1-to-Many Relationship: One College offers Many Branches
+  branches     Branch[]
 
-  @@index([code])
-  @@index([location])
-  @@index([district])
-  @@index([type])
-  @@index([isActive])
+  // 1-to-Many Relationship: One College has Many Cutoff records
+  cutoffs      AdmissionCutoff[]
 }
 
-model CollegeCutoff {
+model Branch {
   id            Int      @id @default(autoincrement())
-  collegeId     Int
+  name          String   // Branch Name e.g. "Computer Science & Engineering"
+  code          String   // Branch Code e.g. "CSE", "ME", "CE", "EE"
+  durationYears Int      @default(3) // Duration in years (3 for Polytechnic Diploma)
+  seats         Int      @default(60) // Sanctioned seat intake capacity
+  collegeId     Int      // Foreign key referencing College.id
   college       College  @relation(fields: [collegeId], references: [id], onDelete: Cascade)
-  courseName    String   // e.g., "Civil Engineering"
-  category      Category // GEN, OBC, SC, ST, EWS, MBC, TFWS, PWD
-  admissionYear Int      // e.g., 2024
-  openingRank   Int
-  closingRank   Int
-  round         Int      @default(1)
-  source        String   // e.g., "DTE Rajasthan Official Cutoff 2024"
-  sourceYear    Int      // e.g., 2024
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
-  @@unique([collegeId, courseName, category, admissionYear, round])
-  @@index([collegeId])
-  @@index([courseName])
-  @@index([category])
-  @@index([admissionYear])
-  @@index([closingRank])
+  // 1-to-Many Relationship: One Branch has Many Cutoff records
+  cutoffs       AdmissionCutoff[]
+
+  // Enforces that a college cannot offer duplicate branches with the same code
+  @@unique([collegeId, code])
+}
+
+// -------------------------------------------------------------
+// CP11: Admission & Cutoff Model
+// Department of Technical Education, Government of Rajasthan
+// -------------------------------------------------------------
+
+model AdmissionCutoff {
+  id          Int      @id @default(autoincrement())
+  collegeId   Int                                        // Foreign key → College
+  college     College  @relation(fields: [collegeId], references: [id], onDelete: Cascade)
+  branchId    Int                                        // Foreign key → Branch
+  branch      Branch   @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  year        Int                                        // Admission year e.g. 2024
+  category    String                                     // GENERAL, OBC, SC, ST, EWS, MBC, SBC
+  cutoffMarks Float?                                     // Cutoff percentage/marks (optional)
+  cutoffRank  Int?                                       // Cutoff rank (optional)
+  round       Int      @default(1)                       // Counseling round number (1, 2, 3...)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // One college+branch cannot have two cutoffs for the same year, category and round
+  @@unique([collegeId, branchId, year, category, round])
 }
