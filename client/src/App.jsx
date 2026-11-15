@@ -1,61 +1,73 @@
-import React from 'react';
-import { HashRouter, Routes, Route } from 'react-router-dom';
+import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { AuthProvider } from './context/AuthContext';
 import Navbar from './components/Navbar';
+import ProtectedRoute from './components/ProtectedRoute';
 import HomePage from './pages/HomePage';
 import StudentPage from './pages/StudentPage';
+import AuthPage from './pages/AuthPage';
 import './App.css';
 
 function App() {
   return (
     <HashRouter>
-      <div className="app-container">
-        {/* Reusable Common Navbar */}
-        <Navbar />
+      <AuthProvider>
+        <div className="app-container">
+          {/* Reusable Common Navbar with Auth State */}
+          <Navbar />
 
-        {/* Page Content based on current route */}
-        <main className="main-content">
-          <Routes>
-            <Route path="/" element={<HomePage />} />
-            <Route path="/students" element={<StudentPage />} />
-            <Route 
-              path="/colleges" 
-              element={
-                <div className="page-placeholder">
-                  <h1>Colleges & Branches</h1>
-                  <p>Explore polytechnic institutions and diploma streams across Rajasthan.</p>
-                </div>
-              } 
-            />
-            <Route 
-              path="/chatbot" 
-              element={
-                <div className="page-placeholder">
-                  <h1>AI Chatbot</h1>
-                  <p>AI-Powered student assistance chatbot interface.</p>
-                </div>
-              } 
-            />
-            <Route 
-              path="/cutoffs" 
-              element={
-                <div className="page-placeholder">
-                  <h1>Admission Cutoff</h1>
-                  <p>View historical cutoff marks and counseling ranks for Rajasthan colleges.</p>
-                </div>
-              } 
-            />
-            <Route 
-              path="/login" 
-              element={
-                <div className="page-placeholder">
-                  <h1>Student / Admin Login</h1>
-                  <p>Portal login authentication interface.</p>
-                </div>
-              } 
-            />
-          </Routes>
-        </main>
-      </div>
+          {/* Page Content based on current route */}
+          <main className="main-content">
+            <Routes>
+              {/* Public Routes */}
+              <Route path="/" element={<HomePage />} />
+              <Route path="/login" element={<AuthPage key="login" initialMode="login" />} />
+              <Route path="/register" element={<AuthPage key="register" initialMode="register" />} />
+
+              {/* Protected Routes — Student Management requires Administrator authorization */}
+              <Route 
+                path="/students" 
+                element={
+                  <ProtectedRoute requiredRole="ADMIN">
+                    <StudentPage />
+                  </ProtectedRoute>
+                } 
+              />
+
+              {/* Public Informational Placeholders */}
+              <Route 
+                path="/colleges" 
+                element={
+                  <div className="page-placeholder">
+                    <h1>Colleges & Branches</h1>
+                    <p>Explore polytechnic institutions and diploma streams across Rajasthan.</p>
+                  </div>
+                } 
+              />
+              <Route 
+                path="/chatbot" 
+                element={
+                  <div className="page-placeholder">
+                    <h1>AI Chatbot</h1>
+                    <p>AI-Powered student assistance chatbot interface.</p>
+                  </div>
+                } 
+              />
+              <Route 
+                path="/cutoffs" 
+                element={
+                  <div className="page-placeholder">
+                    <h1>Admission Cutoff</h1>
+                    <p>View historical cutoff marks and counseling ranks for Rajasthan colleges.</p>
+                  </div>
+                } 
+              />
+
+              {/* Catch-all redirect to Home */}
+              <Route path="*" element={<Navigate to="/" replace />} />
+            </Routes>
+          </main>
+        </div>
+      </AuthProvider>
     </HashRouter>
   );
 }

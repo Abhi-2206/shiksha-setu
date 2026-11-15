@@ -69,6 +69,9 @@ function StudentPage() {
   const [deleteSubmitting, setDeleteSubmitting] = useState(false);
   const [deleteError, setDeleteError] = useState(null);
 
+  // View Student Modal (read-only details view)
+  const [viewingStudent, setViewingStudent] = useState(null);
+
   // Rajasthan District Filter Options
   const districtOptions = [
     'Jaipur', 'Jodhpur', 'Kota', 'Ajmer', 'Bikaner',
@@ -816,7 +819,13 @@ function StudentPage() {
                     <td>{student.profile?.passingYear || '—'}</td>
                     <td>
                       <div className="table-actions">
-                        <button className="action-btn btn-view" title="View details">View</button>
+                        <button 
+                          className="action-btn btn-view" 
+                          title="View details"
+                          onClick={() => setViewingStudent(student)}
+                        >
+                          View
+                        </button>
                         <button 
                           className="action-btn btn-edit" 
                           title="Edit student"
@@ -1445,6 +1454,77 @@ function StudentPage() {
               </button>
             </div>
 
+          </div>
+        </div>
+      )}
+
+      {/* =========================================================
+          View Student Details Modal
+          ========================================================= */}
+      {viewingStudent && (
+        <div className="modal-overlay" onClick={() => setViewingStudent(null)}>
+          <div className="modal-card" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '640px' }}>
+            {/* Modal Header */}
+            <div className="modal-header">
+              <div>
+                <h3 className="modal-title">Student Profile Details</h3>
+                <p className="modal-subtitle">
+                  Academic and profile record for {viewingStudent.name} (ID: #{viewingStudent.id})
+                </p>
+              </div>
+              <button 
+                type="button" 
+                className="modal-close-btn"
+                onClick={() => setViewingStudent(null)}
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Modal Body */}
+            <div className="modal-body" style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              <div style={{ backgroundColor: '#F8F9FA', padding: '14px', borderRadius: '6px', border: '1px solid #E9ECEF' }}>
+                <h4 style={{ margin: '0 0 10px 0', fontSize: '13px', color: '#1A365D', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Account Information</h4>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '8px', fontSize: '13px' }}>
+                  <div><strong>Full Name:</strong> {viewingStudent.name}</div>
+                  <div><strong>Email:</strong> {viewingStudent.email}</div>
+                  <div><strong>Phone:</strong> {viewingStudent.profile?.phoneNumber || 'Not Provided'}</div>
+                  <div><strong>Date of Birth:</strong> {viewingStudent.profile?.dateOfBirth ? new Date(viewingStudent.profile.dateOfBirth).toLocaleDateString() : 'Not Set'}</div>
+                  <div><strong>Gender:</strong> {viewingStudent.profile?.gender || 'Not Set'}</div>
+                </div>
+              </div>
+
+              <div style={{ backgroundColor: '#F8F9FA', padding: '14px', borderRadius: '6px', border: '1px solid #E9ECEF' }}>
+                <h4 style={{ margin: '0 0 10px 0', fontSize: '13px', color: '#1A365D', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Location Details</h4>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '8px', fontSize: '13px' }}>
+                  <div><strong>State:</strong> {viewingStudent.profile?.state || 'Rajasthan'}</div>
+                  <div><strong>District:</strong> {viewingStudent.profile?.district || 'Not Set'}</div>
+                  <div><strong>City:</strong> {viewingStudent.profile?.city || 'Not Set'}</div>
+                </div>
+              </div>
+
+              <div style={{ backgroundColor: '#F8F9FA', padding: '14px', borderRadius: '6px', border: '1px solid #E9ECEF' }}>
+                <h4 style={{ margin: '0 0 10px 0', fontSize: '13px', color: '#1A365D', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Academic Information</h4>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '8px', fontSize: '13px' }}>
+                  <div><strong>Education Level:</strong> {viewingStudent.profile?.currentEducationLevel || 'Not Set'}</div>
+                  <div><strong>Institute:</strong> {viewingStudent.profile?.instituteName || 'Not Set'}</div>
+                  <div><strong>Course / Stream:</strong> {viewingStudent.profile?.courseOrStream || 'Not Set'}</div>
+                  <div><strong>Passing Year:</strong> {viewingStudent.profile?.passingYear || '—'}</div>
+                  <div><strong>Score:</strong> {viewingStudent.profile?.percentageOrCgpa !== null && viewingStudent.profile?.percentageOrCgpa !== undefined ? viewingStudent.profile.percentageOrCgpa : '—'}</div>
+                </div>
+              </div>
+            </div>
+
+            {/* Modal Footer */}
+            <div className="modal-footer">
+              <button 
+                type="button" 
+                className="btn-modal-cancel"
+                onClick={() => setViewingStudent(null)}
+              >
+                Close
+              </button>
+            </div>
           </div>
         </div>
       )}
