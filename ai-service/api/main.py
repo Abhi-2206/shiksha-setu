@@ -6,6 +6,7 @@ and Cutoff Trend Predictions into clean, production-ready REST endpoints.
 from __future__ import annotations
 
 import logging
+import os
 import sys
 from pathlib import Path
 from typing import Any, Dict
@@ -235,3 +236,70 @@ async def predict_cutoff_endpoint(request: PredictCutoffRequest) -> PredictCutof
         )
     except ValueError as val_err:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(val_err))
+
+
+# ============================================================================
+# Dynamic Server Configuration & Direct Startup
+# ============================================================================
+
+def get_port(raw_port: Optional[str | int] = None) -> int:
+    """
+    Resolves and validates the server port:
+    - Reads PORT environment variable if raw_port is not provided.
+    - Defaults to 8000 if PORT is missing, empty, or whitespace-only.
+    - Accepts integers from 1 through 65535.
+    - Raises ValueError for non-numeric or out-of-range values.
+    - Does not silently fall back to 8000 when an invalid PORT is supplied.
+    """
+    if raw_port is None:
+        port_str = os.getenv("PORT", "").strip()
+    elif isinstance(raw_port, int):
+        port_str = str(raw_port)
+    else:
+        port_str = str(raw_port).strip()
+
+    if not port_str:
+        return 8000
+
+    try:
+        port = int(port_str)
+    except ValueError as err:
+        raise ValueError(
+            f"Invalid PORT '{port_str}'. Port must be an integer between 1 and 65535."
+        ) from err
+
+    if not (1 <= port <= 65535):
+        raise ValueError(
+            f"Invalid PORT {port}. Port must be between 1 and 65535."
+        )
+
+    return port
+
+
+def get_host(raw_host: Optional[str] = None) -> str:
+    """
+    Resolves the server host:
+    - Reads HOST environment variable if raw_host is not provided.
+    - Defaults to '0.0.0.0' if missing, empty, or whitespace-only.
+    """
+    if raw_host is None:
+        host_str = os.getenv("HOST", "").strip()
+    else:
+        host_str = str(raw_host).strip()
+
+    return host_str if host_str else "0.0.0.0"
+
+
+if __name__ == "__main__":
+    import uvicorn
+
+    host = get_host()
+    try:
+        port = get_port()
+    except ValueError as err:
+        logger.critical("Startup failed: %s", err)
+        print(f"Startup configuration error: {err}", file=sys.stderr)
+        sys.exit(1)
+
+    logger.info("Starting Shiksha Setu AI Service on %s:%d", host, port)
+    uvicorn.run(app, host=host, port=port)

@@ -170,13 +170,35 @@ GEMINI_EMBEDDING_MODEL=gemini-embedding-001
 
 ## Running the API Service
 
-From the **project root** (`shiksha-setu/`):
+The AI service supports dynamic `PORT` and `HOST` configuration for production container deployments.
 
+- `PORT`: Server port (default: `8000`). Cloud platforms (Render, Railway, Heroku, Cloud Run) provide this automatically. Must be an integer between 1 and 65535.
+- `HOST`: Server interface (default: `0.0.0.0`). Binds to all interfaces, as required for container ingress.
+
+### Direct Python Startup (Recommended)
+Reads `PORT` and `HOST` directly from the environment without relying on shell parameter expansion:
+
+**From project root (`shiksha-setu/`):**
 ```bash
-./ai-service/.venv/bin/uvicorn api.main:app --host 0.0.0.0 --port 8000 --reload --app-dir ai-service
+python3 ai-service/api/main.py
 ```
 
-The service starts at `http://localhost:8000`.
+**From inside `ai-service/`:**
+```bash
+python3 api/main.py
+```
+
+### Uvicorn CLI Startup
+```bash
+# Development mode with auto-reload (from project root):
+./ai-service/.venv/bin/uvicorn api.main:app --host 0.0.0.0 --port 8000 --reload --app-dir ai-service
+
+# Dynamic port via shell parameter expansion (where shell is supported):
+uvicorn api.main:app --host 0.0.0.0 --port ${PORT:-8000} --app-dir ai-service
+```
+*(Note: Shell parameter expansion `${PORT:-8000}` requires an active shell environment. For cloud dashboards without shell expansion, use `python3 ai-service/api/main.py` directly).*
+
+The service starts at `http://localhost:8000` (or `http://localhost:<PORT>`).
 
 | URL | Description |
 |---|---|
