@@ -732,6 +732,326 @@ describe("Backend API Integration Tests", () => {
       const data = await res.json();
       assert.ok(data.cutoffs.length >= 1);
     });
+
+    // ==========================================================================
+    // Branch Creation Endpoints & Validation Tests
+    // ==========================================================================
+    it("POST /api/colleges/:id/branches should reject unauthenticated request (401)", async () => {
+      const res = await fetch(`${baseUrl}/api/colleges/${createdCollegeId}/branches`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: "Civil Engineering", code: "CE" }),
+      });
+      assert.strictEqual(res.status, 401);
+    });
+
+    it("POST /api/colleges/:id/branches should reject student request with 403", async () => {
+      const res = await fetch(`${baseUrl}/api/colleges/${createdCollegeId}/branches`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${studentToken}`,
+        },
+        body: JSON.stringify({ name: "Civil Engineering", code: "CE" }),
+      });
+      assert.strictEqual(res.status, 403);
+    });
+
+    it("POST /api/colleges/:id/branches should reject invalid college ID (400)", async () => {
+      const res = await fetch(`${baseUrl}/api/colleges/not-a-number/branches`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${adminToken}`,
+        },
+        body: JSON.stringify({ name: "Civil Engineering", code: "CE" }),
+      });
+      assert.strictEqual(res.status, 400);
+      const data = await res.json();
+      assert.strictEqual(data.success, false);
+      assert.strictEqual(data.message, "Invalid college ID");
+    });
+
+    it("POST /api/colleges/:id/branches should reject college ID 0 (400)", async () => {
+      const res = await fetch(`${baseUrl}/api/colleges/0/branches`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${adminToken}`,
+        },
+        body: JSON.stringify({ name: "Civil Engineering", code: "CE" }),
+      });
+      assert.strictEqual(res.status, 400);
+      const data = await res.json();
+      assert.strictEqual(data.success, false);
+      assert.strictEqual(data.message, "Invalid college ID");
+    });
+
+    it("POST /api/colleges/:id/branches should reject negative college ID (400)", async () => {
+      const res = await fetch(`${baseUrl}/api/colleges/-5/branches`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${adminToken}`,
+        },
+        body: JSON.stringify({ name: "Civil Engineering", code: "CE" }),
+      });
+      assert.strictEqual(res.status, 400);
+      const data = await res.json();
+      assert.strictEqual(data.success, false);
+      assert.strictEqual(data.message, "Invalid college ID");
+    });
+
+    it("POST /api/colleges/:id/branches should reject fractional college ID (400)", async () => {
+      const res = await fetch(`${baseUrl}/api/colleges/1.5/branches`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${adminToken}`,
+        },
+        body: JSON.stringify({ name: "Civil Engineering", code: "CE" }),
+      });
+      assert.strictEqual(res.status, 400);
+      const data = await res.json();
+      assert.strictEqual(data.success, false);
+      assert.strictEqual(data.message, "Invalid college ID");
+    });
+
+    it("POST /api/colleges/:id/branches should reject extremely large numeric college ID (400)", async () => {
+      const res = await fetch(`${baseUrl}/api/colleges/999999999999999999999999999999999999999999/branches`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${adminToken}`,
+        },
+        body: JSON.stringify({ name: "Civil Engineering", code: "CE" }),
+      });
+      assert.strictEqual(res.status, 400);
+      const data = await res.json();
+      assert.strictEqual(data.success, false);
+      assert.strictEqual(data.message, "Invalid college ID");
+    });
+
+    it("POST /api/colleges/:id/branches should reject non-existent college (404)", async () => {
+      const res = await fetch(`${baseUrl}/api/colleges/999999/branches`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${adminToken}`,
+        },
+        body: JSON.stringify({ name: "Civil Engineering", code: "CE" }),
+      });
+      assert.strictEqual(res.status, 404);
+      const data = await res.json();
+      assert.strictEqual(data.success, false);
+      assert.strictEqual(data.message, "College not found");
+    });
+
+    it("POST /api/colleges/:id/branches should reject array request body (400)", async () => {
+      const res = await fetch(`${baseUrl}/api/colleges/${createdCollegeId}/branches`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${adminToken}`,
+        },
+        body: JSON.stringify([]),
+      });
+      assert.strictEqual(res.status, 400);
+      const data = await res.json();
+      assert.strictEqual(data.success, false);
+      assert.strictEqual(data.message, "Validation failed");
+      assert.ok(data.errors.some((e) => /JSON object/i.test(e)));
+    });
+
+    it("POST /api/colleges/:id/branches should reject null request body (400)", async () => {
+      const res = await fetch(`${baseUrl}/api/colleges/${createdCollegeId}/branches`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${adminToken}`,
+        },
+        body: JSON.stringify(null),
+      });
+      assert.strictEqual(res.status, 400);
+      const data = await res.json();
+      assert.strictEqual(data.success, false);
+      assert.strictEqual(data.message, "Validation failed");
+      assert.ok(data.errors.some((e) => /JSON object/i.test(e)));
+    });
+
+    it("POST /api/colleges/:id/branches should reject missing name and code (400)", async () => {
+      const res = await fetch(`${baseUrl}/api/colleges/${createdCollegeId}/branches`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${adminToken}`,
+        },
+        body: JSON.stringify({}),
+      });
+      assert.strictEqual(res.status, 400);
+      const data = await res.json();
+      assert.strictEqual(data.success, false);
+      assert.strictEqual(data.message, "Validation failed");
+      assert.ok(Array.isArray(data.errors));
+      assert.ok(data.errors.some((e) => /name/i.test(e)));
+      assert.ok(data.errors.some((e) => /code/i.test(e)));
+    });
+
+    it("POST /api/colleges/:id/branches should reject non-string name and code (400)", async () => {
+      const res = await fetch(`${baseUrl}/api/colleges/${createdCollegeId}/branches`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${adminToken}`,
+        },
+        body: JSON.stringify({ name: 12345, code: true }),
+      });
+      assert.strictEqual(res.status, 400);
+      const data = await res.json();
+      assert.strictEqual(data.success, false);
+      assert.strictEqual(data.message, "Validation failed");
+      assert.ok(data.errors.some((e) => /name/i.test(e)));
+      assert.ok(data.errors.some((e) => /code/i.test(e)));
+    });
+
+    it("POST /api/colleges/:id/branches should reject whitespace-only name and code (400)", async () => {
+      const res = await fetch(`${baseUrl}/api/colleges/${createdCollegeId}/branches`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${adminToken}`,
+        },
+        body: JSON.stringify({ name: "   ", code: "   " }),
+      });
+      assert.strictEqual(res.status, 400);
+      const data = await res.json();
+      assert.strictEqual(data.success, false);
+      assert.strictEqual(data.message, "Validation failed");
+      assert.ok(data.errors.some((e) => /name/i.test(e)));
+      assert.ok(data.errors.some((e) => /code/i.test(e)));
+    });
+
+    it("POST /api/colleges/:id/branches should reject name and code violating length limits (400)", async () => {
+      const res = await fetch(`${baseUrl}/api/colleges/${createdCollegeId}/branches`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${adminToken}`,
+        },
+        body: JSON.stringify({ name: "A", code: "A" }),
+      });
+      assert.strictEqual(res.status, 400);
+      const data = await res.json();
+      assert.strictEqual(data.success, false);
+      assert.strictEqual(data.message, "Validation failed");
+      assert.ok(data.errors.some((e) => /at least 2 characters/i.test(e)));
+    });
+
+    it("POST /api/colleges/:id/branches should reject invalid durationYears and seats (400)", async () => {
+      const res = await fetch(`${baseUrl}/api/colleges/${createdCollegeId}/branches`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${adminToken}`,
+        },
+        body: JSON.stringify({
+          name: "Civil Engineering",
+          code: "CIVIL",
+          durationYears: "3abc",
+          seats: -50,
+        }),
+      });
+      assert.strictEqual(res.status, 400);
+      const data = await res.json();
+      assert.strictEqual(data.success, false);
+      assert.strictEqual(data.message, "Validation failed");
+      assert.ok(data.errors.some((e) => /durationYears/i.test(e)));
+      assert.ok(data.errors.some((e) => /seats/i.test(e)));
+    });
+
+    it("POST /api/colleges/:id/branches should reject fractional durationYears and seats (400)", async () => {
+      const res = await fetch(`${baseUrl}/api/colleges/${createdCollegeId}/branches`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${adminToken}`,
+        },
+        body: JSON.stringify({
+          name: "Civil Engineering",
+          code: "CIVIL",
+          durationYears: 3.5,
+          seats: 60.5,
+        }),
+      });
+      assert.strictEqual(res.status, 400);
+      const data = await res.json();
+      assert.strictEqual(data.success, false);
+      assert.strictEqual(data.message, "Validation failed");
+      assert.ok(data.errors.some((e) => /durationYears/i.test(e)));
+      assert.ok(data.errors.some((e) => /seats/i.test(e)));
+    });
+
+    it("POST /api/colleges/:id/branches should reject out-of-range durationYears and seats (400)", async () => {
+      const res = await fetch(`${baseUrl}/api/colleges/${createdCollegeId}/branches`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${adminToken}`,
+        },
+        body: JSON.stringify({
+          name: "Civil Engineering",
+          code: "CIVIL",
+          durationYears: 0,
+          seats: 1001,
+        }),
+      });
+      assert.strictEqual(res.status, 400);
+      const data = await res.json();
+      assert.strictEqual(data.success, false);
+      assert.strictEqual(data.message, "Validation failed");
+      assert.ok(data.errors.some((e) => /durationYears/i.test(e)));
+      assert.ok(data.errors.some((e) => /seats/i.test(e)));
+    });
+
+    it("POST /api/colleges/:id/branches should allow admin to create branch with defaults (201)", async () => {
+      const res = await fetch(`${baseUrl}/api/colleges/${createdCollegeId}/branches`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${adminToken}`,
+        },
+        body: JSON.stringify({
+          name: "  Computer Science & Engineering  ",
+          code: "  cse  ",
+        }),
+      });
+      assert.strictEqual(res.status, 201);
+      const data = await res.json();
+      assert.strictEqual(data.success, true);
+      assert.strictEqual(data.branch.name, "Computer Science & Engineering");
+      assert.strictEqual(data.branch.code, "CSE");
+      assert.strictEqual(data.branch.durationYears, 3);
+      assert.strictEqual(data.branch.seats, 60);
+      assert.strictEqual(data.branch.collegeId, createdCollegeId);
+    });
+
+    it("POST /api/colleges/:id/branches should reject duplicate branch code for same college (409)", async () => {
+      const res = await fetch(`${baseUrl}/api/colleges/${createdCollegeId}/branches`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${adminToken}`,
+        },
+        body: JSON.stringify({
+          name: "Computer Science & Engineering Duplicate",
+          code: "CSE",
+        }),
+      });
+      assert.strictEqual(res.status, 409);
+      const data = await res.json();
+      assert.strictEqual(data.success, false);
+      assert.match(data.message, /unique constraint violation/i);
+    });
   });
 
   // ==========================================================================
