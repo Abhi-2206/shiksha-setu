@@ -5,6 +5,7 @@ Provides persistent storage for embedding vectors generated from PDF document ch
 from __future__ import annotations
 
 import logging
+import os
 import sys
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Set
@@ -37,6 +38,30 @@ REQUIRED_CHUNK_KEYS: Set[str] = {
 }
 
 
+def get_chroma_persist_path(persist_path: Optional[str | Path] = None) -> Path:
+    """
+    Resolves the directory path for ChromaDB persistent storage.
+
+    Precedence:
+    1. Explicit `persist_path` argument (if provided and non-empty).
+    2. `CHROMA_PERSIST_DIR` environment variable (if set and non-empty).
+    3. Default path: `ai-service/data/chroma_db`.
+
+    Expands `~` (user home directory) and resolves relative paths relative
+    to the current working directory.
+    """
+    if persist_path is not None:
+        p_str = str(persist_path).strip()
+        if p_str:
+            return Path(p_str).expanduser().resolve()
+
+    env_dir = os.getenv("CHROMA_PERSIST_DIR", "").strip()
+    if env_dir:
+        return Path(env_dir).expanduser().resolve()
+
+    return DEFAULT_CHROMA_PATH.resolve()
+
+
 class ChromaStoreError(Exception):
     """Raised when a ChromaDB storage operation fails."""
     pass
@@ -51,7 +76,7 @@ def get_chroma_client(
 
     Args:
         persist_path: Directory path for persistent storage.
-                      Defaults to ai-service/data/chroma_db/.
+                      Defaults to CHROMA_PERSIST_DIR or ai-service/data/chroma_db/.
         ephemeral: If True, use an in-memory EphemeralClient (for testing only).
 
     Returns:
@@ -66,7 +91,7 @@ def get_chroma_client(
         except Exception as err:
             raise ChromaStoreError(f"Failed to create ephemeral ChromaDB client: {err}") from err
 
-    chroma_path = Path(persist_path) if persist_path else DEFAULT_CHROMA_PATH
+    chroma_path = get_chroma_persist_path(persist_path)
     chroma_path.mkdir(parents=True, exist_ok=True)
 
     try:
