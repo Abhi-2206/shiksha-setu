@@ -1,62 +1,90 @@
-import React from 'react';
-import { HashRouter, Routes, Route } from 'react-router-dom';
+import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { AuthProvider } from './context/AuthContext';
+import { ProtectedRoute, AdminRoute } from './components/ProtectedRoute';
 import Navbar from './components/Navbar';
+
+// Teammate pages preserved
 import HomePage from './pages/HomePage';
 import StudentPage from './pages/StudentPage';
+
+// Task 3 pages
+import LoginPage from './pages/LoginPage';
+import StudentDashboard from './pages/StudentDashboard';
+import ChatbotPage from './pages/ChatbotPage';
+import RecommendationsPage from './pages/RecommendationsPage';
+import CutoffPredictorPage from './pages/CutoffPredictorPage';
+import ProfilePage from './pages/ProfilePage';
+import CollegesPage from './pages/CollegesPage';
+import AdminDashboard from './pages/AdminDashboard';
+
 import './App.css';
 
 function App() {
   return (
-    <HashRouter>
-      <div className="app-container">
-        {/* Reusable Common Navbar */}
-        <Navbar />
+    <AuthProvider>
+      <HashRouter>
+        <div className="app-container">
+          
+          {/* Reusable Common Navbar with Role-Based Navigation */}
+          <Navbar />
 
-        {/* Page Content based on current route */}
-        <main className="main-content">
-          <Routes>
-            <Route path="/" element={<HomePage />} />
-            <Route path="/students" element={<StudentPage />} />
-            <Route 
-              path="/colleges" 
-              element={
-                <div className="page-placeholder">
-                  <h1>Colleges & Branches</h1>
-                  <p>Explore polytechnic institutions and diploma streams across Rajasthan.</p>
-                </div>
-              } 
-            />
-            <Route 
-              path="/chatbot" 
-              element={
-                <div className="page-placeholder">
-                  <h1>AI Chatbot</h1>
-                  <p>AI-Powered student assistance chatbot interface.</p>
-                </div>
-              } 
-            />
-            <Route 
-              path="/cutoffs" 
-              element={
-                <div className="page-placeholder">
-                  <h1>Admission Cutoff</h1>
-                  <p>View historical cutoff marks and counseling ranks for Rajasthan colleges.</p>
-                </div>
-              } 
-            />
-            <Route 
-              path="/login" 
-              element={
-                <div className="page-placeholder">
-                  <h1>Student / Admin Login</h1>
-                  <p>Portal login authentication interface.</p>
-                </div>
-              } 
-            />
-          </Routes>
-        </main>
-      </div>
-    </HashRouter>
+          {/* Page Content based on current route */}
+          <main className="main-content">
+            <Routes>
+              {/* Public Routes */}
+              <Route path="/" element={<HomePage />} />
+              <Route path="/login" element={<LoginPage />} />
+              <Route path="/colleges" element={<CollegesPage />} />
+              <Route path="/cutoffs" element={<CutoffPredictorPage />} />
+              <Route path="/chatbot" element={<ChatbotPage />} />
+
+              {/* Student Protected Routes */}
+              <Route
+                path="/dashboard"
+                element={
+                  <ProtectedRoute>
+                    <StudentDashboard />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/recommendations"
+                element={<RecommendationsPage />}
+              />
+              <Route
+                path="/profile"
+                element={
+                  <ProtectedRoute>
+                    <ProfilePage />
+                  </ProtectedRoute>
+                }
+              />
+
+              {/* Administrator Protected Routes */}
+              <Route
+                path="/admin"
+                element={
+                  <AdminRoute>
+                    <AdminDashboard />
+                  </AdminRoute>
+                }
+              />
+              <Route
+                path="/students"
+                element={
+                  <AdminRoute>
+                    <StudentPage />
+                  </AdminRoute>
+                }
+              />
+
+              {/* Fallback route */}
+              <Route path="*" element={<Navigate to="/" replace />} />
+            </Routes>
+          </main>
+        </div>
+      </HashRouter>
+    </AuthProvider>
   );
 }
 
