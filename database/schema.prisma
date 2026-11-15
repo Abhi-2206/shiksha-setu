@@ -10,6 +10,35 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+// ============================================================================
+// Enums
+// ============================================================================
+
+enum Role {
+  STUDENT
+  ADMIN
+}
+
+enum Category {
+  GEN
+  OBC
+  SC
+  ST
+  EWS
+  MBC
+  TFWS
+  PWD
+}
+
+enum SenderType {
+  STUDENT
+  ASSISTANT
+}
+
+// ============================================================================
+// Core User Model (Authentication & Roles)
+// ============================================================================
+
 model User {
   id        Int             @id @default(autoincrement())
   name      String
