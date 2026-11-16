@@ -5,5 +5,6 @@ chromadb
 pymupdf
 python-dotenv
 pandas
-pydantic
+pydantic>=2.0
+pytest
 
