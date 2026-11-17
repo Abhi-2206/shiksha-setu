@@ -7,10 +7,18 @@ CREATE TYPE "Category" AS ENUM ('GEN', 'OBC', 'SC', 'ST', 'EWS', 'MBC', 'TFWS', 
 -- CreateEnum
 CREATE TYPE "SenderType" AS ENUM ('STUDENT', 'ASSISTANT');
 
--- AlterTable safely without data loss
-ALTER TABLE "User" ALTER COLUMN "role" DROP DEFAULT;
-ALTER TABLE "User" ALTER COLUMN "role" TYPE "Role" USING ("role"::text::"Role");
-ALTER TABLE "User" ALTER COLUMN "role" SET DEFAULT 'STUDENT'::"Role";
+-- CreateTable
+CREATE TABLE "User" (
+    "id" SERIAL NOT NULL,
+    "name" TEXT NOT NULL,
+    "email" TEXT NOT NULL,
+    "password" TEXT NOT NULL,
+    "role" "Role" NOT NULL DEFAULT 'STUDENT',
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "User_pkey" PRIMARY KEY ("id")
+);
 
 -- CreateTable
 CREATE TABLE "StudentProfile" (
@@ -23,9 +31,15 @@ CREATE TABLE "StudentProfile" (
     "gender" TEXT,
     "address" TEXT,
     "district" TEXT,
+    "city" TEXT,
     "state" TEXT DEFAULT 'Rajasthan',
     "pincode" TEXT,
     "isRajasthanDomicile" BOOLEAN NOT NULL DEFAULT true,
+    "currentEducationLevel" TEXT,
+    "instituteName" TEXT,
+    "courseOrStream" TEXT,
+    "passingYear" INTEGER,
+    "percentageOrCgpa" DOUBLE PRECISION,
     "qualifyingExam" TEXT,
     "tenthPercentage" DOUBLE PRECISION,
     "twelfthPercentage" DOUBLE PRECISION,
@@ -69,22 +83,53 @@ CREATE TABLE "ChatMessage" (
 -- CreateTable
 CREATE TABLE "College" (
     "id" SERIAL NOT NULL,
-    "code" TEXT NOT NULL,
     "name" TEXT NOT NULL,
-    "location" TEXT NOT NULL,
+    "code" TEXT NOT NULL,
+    "type" TEXT NOT NULL DEFAULT 'GOVERNMENT',
     "district" TEXT,
+    "city" TEXT,
+    "location" TEXT NOT NULL DEFAULT 'Rajasthan',
     "state" TEXT NOT NULL DEFAULT 'Rajasthan',
-    "type" TEXT NOT NULL DEFAULT 'Government',
-    "establishedYear" INTEGER,
+    "address" TEXT,
     "website" TEXT,
     "contactEmail" TEXT,
     "contactPhone" TEXT,
-    "address" TEXT,
+    "establishedYear" INTEGER,
     "isActive" BOOLEAN NOT NULL DEFAULT true,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
     CONSTRAINT "College_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "Branch" (
+    "id" SERIAL NOT NULL,
+    "name" TEXT NOT NULL,
+    "code" TEXT NOT NULL,
+    "durationYears" INTEGER NOT NULL DEFAULT 3,
+    "seats" INTEGER NOT NULL DEFAULT 60,
+    "collegeId" INTEGER NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "Branch_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "AdmissionCutoff" (
+    "id" SERIAL NOT NULL,
+    "collegeId" INTEGER NOT NULL,
+    "branchId" INTEGER NOT NULL,
+    "year" INTEGER NOT NULL,
+    "category" TEXT NOT NULL,
+    "cutoffMarks" DOUBLE PRECISION,
+    "cutoffRank" INTEGER,
+    "round" INTEGER NOT NULL DEFAULT 1,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "AdmissionCutoff_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
@@ -104,6 +149,15 @@ CREATE TABLE "CollegeCutoff" (
 
     CONSTRAINT "CollegeCutoff_pkey" PRIMARY KEY ("id")
 );
+
+-- CreateIndex
+CREATE UNIQUE INDEX "User_email_key" ON "User"("email");
+
+-- CreateIndex
+CREATE INDEX "User_email_idx" ON "User"("email");
+
+-- CreateIndex
+CREATE INDEX "User_role_idx" ON "User"("role");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "StudentProfile_userId_key" ON "StudentProfile"("userId");
@@ -151,6 +205,12 @@ CREATE INDEX "College_type_idx" ON "College"("type");
 CREATE INDEX "College_isActive_idx" ON "College"("isActive");
 
 -- CreateIndex
+CREATE UNIQUE INDEX "Branch_collegeId_code_key" ON "Branch"("collegeId", "code");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "AdmissionCutoff_collegeId_branchId_year_category_round_key" ON "AdmissionCutoff"("collegeId", "branchId", "year", "category", "round");
+
+-- CreateIndex
 CREATE INDEX "CollegeCutoff_collegeId_idx" ON "CollegeCutoff"("collegeId");
 
 -- CreateIndex
@@ -168,12 +228,6 @@ CREATE INDEX "CollegeCutoff_closingRank_idx" ON "CollegeCutoff"("closingRank");
 -- CreateIndex
 CREATE UNIQUE INDEX "CollegeCutoff_collegeId_courseName_category_admissionYear_r_key" ON "CollegeCutoff"("collegeId", "courseName", "category", "admissionYear", "round");
 
--- CreateIndex
-CREATE INDEX "User_email_idx" ON "User"("email");
-
--- CreateIndex
-CREATE INDEX "User_role_idx" ON "User"("role");
-
 -- AddForeignKey
 ALTER TABLE "StudentProfile" ADD CONSTRAINT "StudentProfile_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
@@ -182,6 +236,15 @@ ALTER TABLE "ChatSession" ADD CONSTRAINT "ChatSession_userId_fkey" FOREIGN KEY (
 
 -- AddForeignKey
 ALTER TABLE "ChatMessage" ADD CONSTRAINT "ChatMessage_sessionId_fkey" FOREIGN KEY ("sessionId") REFERENCES "ChatSession"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "Branch" ADD CONSTRAINT "Branch_collegeId_fkey" FOREIGN KEY ("collegeId") REFERENCES "College"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "AdmissionCutoff" ADD CONSTRAINT "AdmissionCutoff_collegeId_fkey" FOREIGN KEY ("collegeId") REFERENCES "College"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "AdmissionCutoff" ADD CONSTRAINT "AdmissionCutoff_branchId_fkey" FOREIGN KEY ("branchId") REFERENCES "Branch"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "CollegeCutoff" ADD CONSTRAINT "CollegeCutoff_collegeId_fkey" FOREIGN KEY ("collegeId") REFERENCES "College"("id") ON DELETE CASCADE ON UPDATE CASCADE;

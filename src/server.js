@@ -99,8 +99,11 @@ app.use(
   })
 );
 
-// Middleware to parse incoming JSON request bodies
-app.use(express.json());
+// Middleware to parse incoming JSON request bodies.
+// `strict: false` allows primitive JSON values (e.g. `null`, `true`, numbers)
+// to be parsed so route-level validation can reject them with the app's own
+// structured "Validation failed" response instead of a raw body-parser error.
+app.use(express.json({ strict: false }));
 
 // Health-check route to verify backend is up and running
 app.get("/api/health", (req, res) => {
